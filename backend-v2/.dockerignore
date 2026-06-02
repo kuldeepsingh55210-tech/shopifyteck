@@ -1,0 +1,9 @@
+node_modules
+.env
+*.log
+npm-debug.log*
+.git
+.gitignore
+README.md
+prisma.config.ts
+*.md

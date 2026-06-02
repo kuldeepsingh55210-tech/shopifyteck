@@ -1,0 +1,15 @@
+name = "AutoSupport AI"
+client_id = "132883ae6faf83b08d6b22492b8f1ce4"
+application_url = "https://manually-prepunctual-leon.ngrok-free.dev"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_fulfillments"
+
+[auth]
+redirect_urls = [
+  "https://manually-prepunctual-leon.ngrok-free.dev/shopify/callback"
+]
+
+[webhooks]
+api_version = "2026-01"    
