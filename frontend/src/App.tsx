@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -85,7 +85,7 @@ interface CsatStats {
   recent: any[];
 }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PIE_COLORS = ['#8b5cf6', '#38bdf8', '#f97316', '#10b981', '#f43f5e', '#a855f7'];
 
 function App() {
