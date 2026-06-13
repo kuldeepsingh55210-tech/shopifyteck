@@ -1,1 +1,144 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Custom Neon Enterprise Color Mapping */
+  --color-neon-bg: var(--bg);
+  --color-neon-surface: var(--surface);
+  --color-neon-card: var(--card);
+  --color-neon-border: var(--border);
+  --color-neon-primary: var(--primary);
+  --color-neon-primary-container: var(--primary-container);
+  --color-neon-secondary: var(--secondary);
+  --color-neon-secondary-container: var(--secondary-container);
+  --color-neon-tertiary: var(--tertiary);
+  --color-neon-danger: var(--danger);
+  --color-neon-warning: var(--warning);
+  --color-neon-text: var(--text);
+  --color-neon-text-muted: var(--text-muted);
+  --color-neon-text-secondary: var(--text-secondary);
+}
+
+:root {
+  /* Default to Dark Theme */
+  --bg: #0A0B0F;
+  --surface: #121317;
+  --card: rgba(18, 20, 26, 0.8);
+  --surface-low: #1a1b20;
+  --surface-high: #292a2e;
+  --border: #2A2D3E;
+  --border-glow: rgba(196, 192, 255, 0.15);
+  --primary: #c4c0ff;
+  --primary-container: #8781ff;
+  --secondary: #a2e7ff;
+  --secondary-container: #00d2fd;
+  --tertiary: #00e29e;
+  --danger: #FF4D6D;
+  --warning: #FFB547;
+  --text: #e3e2e8;
+  --text-muted: #8B8FA8;
+  --text-secondary: #c7c4d8;
+}
+
+html.dark {
+  --bg: #0A0B0F;
+  --surface: #121317;
+  --card: rgba(18, 20, 26, 0.8);
+  --surface-low: #1a1b20;
+  --surface-high: #292a2e;
+  --border: #2A2D3E;
+  --border-glow: rgba(196, 192, 255, 0.15);
+  --primary: #c4c0ff;
+  --primary-container: #8781ff;
+  --secondary: #a2e7ff;
+  --secondary-container: #00d2fd;
+  --tertiary: #00e29e;
+  --danger: #FF4D6D;
+  --warning: #FFB547;
+  --text: #e3e2e8;
+  --text-muted: #8B8FA8;
+  --text-secondary: #c7c4d8;
+}
+
+html:not(.dark) {
+  --bg: #f0f0ff;
+  --surface: #ffffff;
+  --card: rgba(255, 255, 255, 0.9);
+  --surface-low: #f5f5ff;
+  --surface-high: #e8e8ff;
+  --border: #d0cff0;
+  --border-glow: rgba(108, 99, 255, 0.15);
+  --primary: #4f44e2;
+  --primary-container: #6c63ff;
+  --secondary: #0077aa;
+  --secondary-container: #0099cc;
+  --tertiary: #00875a;
+  --danger: #d4183d;
+  --warning: #d97706;
+  --text: #0f0e2e;
+  --text-muted: #6b7280;
+  --text-secondary: #4b4580;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom Interactive Animations and Styles */
+.glow-card {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-card:hover {
+  border-color: var(--primary-container);
+  box-shadow: 0 0 20px var(--border-glow);
+  transform: translateY(-2px);
+}
+
+/* Pulsing LED Animation */
+@keyframes led-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8px currentColor;
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.92);
+    box-shadow: 0 0 3px currentColor;
+  }
+}
+
+.led-pulse {
+  animation: led-pulse 2.2s infinite ease-in-out;
+}
+
+/* Scrollbar redesign */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-container);
+}
