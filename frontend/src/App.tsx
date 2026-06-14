@@ -6,6 +6,9 @@ import { Tickets } from './app/components/pages/Tickets';
 import { Analytics } from './app/components/pages/Analytics';
 import { Stores } from './app/components/pages/Stores';
 import { Settings } from './app/components/pages/Settings';
+import { Loader2 } from 'lucide-react';
+import { authedFetch } from './lib/shopifyAuth';
+const fetch = authedFetch;
 
 interface Ticket {
   id: string | number;
@@ -76,9 +79,13 @@ function App() {
     return saved !== null ? saved === 'true' : true; // Default to dark mode
   });
 
+  // Shop Auth states
+  const [shopChecking, setShopChecking] = useState(true);
+  const [shopError, setShopError] = useState('');
+
+  // Shop states
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
   const [shopId, setShopId] = useState('');
   const [shopDomain, setShopDomain] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,7 +95,6 @@ function App() {
   const [testForm, setTestForm] = useState({ order_number: '', customer_email: '', customer_message: '' });
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [testLoading, setTestLoading] = useState(false);
-  const [error, setError] = useState('');
 
   // CSAT state
   const [csatStats, setCsatStats] = useState<CsatStats | null>(null);
@@ -137,7 +143,7 @@ function App() {
   const [kbError, setKbError] = useState('');
 
   // Add store loading state
-  const [addStoreLoading, setAddStoreLoading] = useState(false);
+  const addStoreLoading = false;
 
   // Apply dark mode styling class
   useEffect(() => {
@@ -149,11 +155,26 @@ function App() {
     localStorage.setItem('darkMode', String(darkMode));
   }, [darkMode]);
 
+  // Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem('shop_id');
+    localStorage.removeItem('shop_domain');
+    localStorage.removeItem('shopify_host');
+    setShopId('');
+    setShopDomain('');
+    setTickets([]);
+    setStats(null);
+    setSearchQuery('');
+    setSelectedTicketId(null);
+    const shop = shopDomain || localStorage.getItem('shop_domain') || '';
+    if (shop) {
+      window.top!.location.href = `https://${shop}/admin/apps/${import.meta.env.VITE_SHOPIFY_API_KEY}`;
+    }
+  };
+
   // Fetch core data
   const fetchData = async (sid: string) => {
     try {
-      setLoading(true);
-      setError('');
       const domain = shopDomain || localStorage.getItem('shop_domain') || '';
       
       const promises = [
@@ -177,11 +198,10 @@ function App() {
       }
     } catch (err) {
       console.error('Failed to fetch core dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
     }
   };
+
+
 
   // Fetch charts & trends for Analytics
   const fetchAnalytics = async () => {
@@ -196,6 +216,7 @@ function App() {
       const ticketsData = ticketsRes.ok ? await ticketsRes.json() : [];
       const resolutionData = resolutionRes.ok ? await resolutionRes.json() : [];
       const sentimentData = sentimentRes.ok ? await sentimentRes.json() : [];
+
       setTicketsOverTime(Array.isArray(ticketsData) ? ticketsData : []);
 
       // Remap resolution rate
@@ -290,72 +311,15 @@ function App() {
     }
   };
 
-  // Shop entry submit handler
-  const handleShopSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!shopId.trim()) {
-      setError('Please enter a shop ID or domain');
+  // Add store submit callback (from Stores.tsx)
+  const handleAddStoreSubmit = async (domain: string) => {
+    if (!domain.trim()) return;
+    if (!domain.match(/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/)) {
+      alert('Invalid shop domain. Must be a valid myshopify.com domain.');
       return;
     }
-
-    setLoading(true);
-    if (shopId.includes('.')) {
-      try {
-        const res = await fetch(`${API_URL}/api/shops?domain=${encodeURIComponent(shopId)}`);
-        if (!res.ok) {
-          throw new Error(`Shop domain not registered: ${shopId}`);
-        }
-        const shop = await res.json();
-        setShopId(shop.id.toString());
-        setShopDomain(shop.domain);
-        localStorage.setItem('shop_id', shop.id.toString());
-        localStorage.setItem('shop_domain', shop.domain);
-        fetchData(shop.id.toString());
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to locate shop domain';
-        setError(msg);
-        setLoading(false);
-      }
-    } else {
-      localStorage.setItem('shop_id', shopId);
-      fetchData(shopId);
-    }
-  };
-
-  // Add store switch handler (triggered from Stores.tsx)
-  const handleAddStoreSubmit = async (domain: string) => {
-    setAddStoreLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/shops?domain=${encodeURIComponent(domain)}`);
-      if (!res.ok) {
-        throw new Error(`Shop domain not found or verified in database: ${domain}`);
-      }
-      const shop = await res.json();
-      // Switch active store context
-      setShopId(shop.id.toString());
-      setShopDomain(shop.domain);
-      localStorage.setItem('shop_id', shop.id.toString());
-      localStorage.setItem('shop_domain', shop.domain);
-      
-      // Refresh views
-      fetchData(shop.id.toString());
-      fetchAnalytics();
-      setPage('dashboard');
-    } finally {
-      setAddStoreLoading(false);
-    }
-  };
-
-  // Disconnect active store channel
-  const handleDisconnectStore = () => {
-    localStorage.removeItem('shop_id');
-    localStorage.removeItem('shop_domain');
-    setShopId('');
-    setShopDomain('');
-    setTickets([]);
-    setStats(null);
+    const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '';
+    window.top!.location.href = `https://${domain}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`;
   };
 
   // CSAT rating simulation submit
@@ -633,34 +597,51 @@ function App() {
     }
   };
 
-  // Run on mount
+  // Run on mount - Enforce Embedded App initialization and verify installation
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlShopId = urlParams.get('shop_id');
-    const urlShopDomain = urlParams.get('shop');
-
-    if (urlShopId) {
-      setShopId(urlShopId);
-      localStorage.setItem('shop_id', urlShopId);
-      if (urlShopDomain) {
-        setShopDomain(urlShopDomain);
-        localStorage.setItem('shop_domain', urlShopDomain);
+    const initShop = async () => {
+      const params = new URLSearchParams(window.location.search);
+      let shop = params.get('shop');
+      
+      if (!shop) {
+        shop = localStorage.getItem('shop_domain');
       }
-      window.history.replaceState({}, document.title, window.location.pathname);
-      fetchData(urlShopId);
-      return;
-    }
 
-    const saved = localStorage.getItem('shop_id');
-    const savedDomain = localStorage.getItem('shop_domain');
+      if (!shop) {
+        setShopError('Shop parameter missing. Please open this app from your Shopify Admin.');
+        setShopChecking(false);
+        return;
+      }
 
-    if (saved) {
-      setShopId(saved);
-      if (savedDomain) setShopDomain(savedDomain);
-      fetchData(saved);
-    } else {
-      setLoading(false);
-    }
+      const cleanShop = shop.trim().replace(/^https?:\/\//, '');
+      setShopDomain(cleanShop);
+      localStorage.setItem('shop_domain', cleanShop);
+
+      try {
+        setShopChecking(true);
+        setShopError('');
+        
+        const res = await fetch(`${API_URL}/api/shops?domain=${encodeURIComponent(cleanShop)}`);
+        
+        if (res.ok) {
+          const shopData = await res.json();
+          setShopId(shopData.id.toString());
+          localStorage.setItem('shop_id', shopData.id.toString());
+          
+          // Fetch core data
+          await fetchData(shopData.id.toString());
+        } else {
+          setShopError('App not properly installed. Please reinstall from Shopify Admin.');
+        }
+      } catch (err) {
+        console.error('[Shop Init] Verification error:', err);
+        setShopError('Connection failed. Unable to verify app installation status.');
+      } finally {
+        setShopChecking(false);
+      }
+    };
+
+    initShop();
   }, []);
 
   // Fetch contextual details depending on page routing
@@ -691,83 +672,62 @@ function App() {
   });
 
   const handleCreateTicketClick = () => {
-    // Switch to simulator tab directly inside tickets page
     setPage('tickets');
     alert('Create Ticket simulation triggered. Use the Test Simulator console.');
   };
 
-  // Render Login state screen if no shop is active
-  if (!shopId || loading) {
+  // 1. Shop Loading/Checking state
+  if (shopChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0B0F] relative overflow-hidden font-sans text-[var(--text)]">
-        {/* Floating Neon Background Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[var(--primary)]/10 blur-[130px] pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-[var(--secondary)]/10 blur-[130px] pointer-events-none"></div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-30 pointer-events-none"></div>
-        
-        <div className="relative z-10 w-full max-w-md p-8 backdrop-blur-xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.5)]">
-          
-          <div className="text-center mb-8 flex flex-col items-center">
-            {/* Gradient Logo */}
-            <div className="w-16 h-16 rounded-2xl bg-[#0a0b0f] border border-[var(--border)] flex items-center justify-center p-1 shadow-[0_0_20px_var(--border-glow)] mb-4 animate-pulse">
-              <svg viewBox="0 0 100 100" className="w-full h-full">
-                <defs>
-                  <linearGradient id="logoGradLogin" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#a2e7ff" />
-                    <stop offset="100%" stopColor="#c4c0ff" />
-                  </linearGradient>
-                </defs>
-                <path d="M 35 40 A 15 15 0 0 1 65 40" fill="none" stroke="url(#logoGradLogin)" strokeWidth="5" strokeLinecap="round"/>
-                <path d="M 28 38 L 72 38 L 76 78 C 76 81, 74 83, 71 83 L 29 83 C 26 83, 24 81, 24 78 Z" fill="none" stroke="url(#logoGradLogin)" strokeWidth="5" strokeLinejoin="round"/>
-                <circle cx="43" cy="54" r="4" fill="url(#logoGradLogin)"/>
-                <circle cx="57" cy="54" r="4" fill="url(#logoGradLogin)"/>
-                <path d="M 44 64 Q 50 69 56 64" fill="none" stroke="url(#logoGradLogin)" strokeWidth="4.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            
-            <h1 className="text-2xl font-bold font-display text-white mb-2 tracking-tight">ORYQX AutoSupport AI</h1>
-            <p className="text-[var(--text-muted)] text-xs font-mono uppercase tracking-wider">
-              {shopDomain ? `Authenticating: ${shopDomain}` : 'Enter merchant shop credentials'}
-            </p>
-          </div>
-
-          {loading && (
-            <div className="flex justify-center mb-6">
-              <div className="w-6 h-6 border-2 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin"></div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-6 p-3.5 bg-red-500/5 border border-red-500/15 rounded-xl text-[var(--danger)] text-xs text-center font-mono">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleShopSubmit} className="space-y-4">
-            <div>
-              <input
-                value={shopId}
-                onChange={e => setShopId(e.target.value)}
-                placeholder="store.myshopify.com"
-                className="w-full px-5 py-3 bg-[#0A0B0F] border border-[var(--border)] rounded-full text-sm text-white placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-300 font-sans text-center"
-                disabled={loading}
-              />
-            </div>
-            
-            <button
-              type="submit"
-              className={`w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-[var(--primary-container)] to-[var(--secondary-container)] hover:from-[var(--primary)] hover:to-[var(--secondary)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(108,99,255,0.25)] hover:shadow-[0_0_25px_rgba(108,99,255,0.45)] transform active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={loading}
-            >
-              {loading ? 'Connecting...' : 'Authorize Interface'}
-            </button>
-          </form>
-
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0B0F] relative overflow-hidden font-sans text-slate-200">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[var(--primary)]/10 blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[var(--secondary)]/10 blur-[120px] pointer-events-none"></div>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
+          <span className="text-xs font-mono text-[var(--text-muted)] tracking-widest uppercase">Initializing Shopify Connection...</span>
         </div>
       </div>
     );
   }
 
+  // 2. Shop Error/Uninstalled state
+  if (shopError) {
+    const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '';
+    const cleanShop = shopDomain.trim().replace(/^https?:\/\//, '');
+    const installUrl = cleanShop 
+      ? `https://${cleanShop}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`
+      : '#';
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0B0F] relative overflow-hidden font-sans text-[var(--text)] px-4">
+        <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[var(--primary)]/10 blur-[130px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-[var(--secondary)]/10 blur-[130px] pointer-events-none"></div>
+        
+        <div className="relative z-10 w-full max-w-md p-8 backdrop-blur-xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.5)] text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#0a0b0f] border border-[var(--border)] flex items-center justify-center p-1 shadow-[0_0_20px_var(--border-glow)] mb-6 mx-auto text-[var(--danger)]">
+            <Loader2 className="w-8 h-8 animate-spin text-[var(--danger)]" />
+          </div>
+
+          <h1 className="text-xl font-bold font-display text-white mb-2 tracking-tight">App Installation Required</h1>
+          <p className="text-[var(--text-muted)] text-sm mb-6 leading-relaxed">
+            {shopError}
+          </p>
+
+          {cleanShop && (
+            <a
+              href={installUrl}
+              target="_top"
+              className="w-full py-2.5 rounded-lg font-semibold text-[#0A0B0F] bg-[var(--primary)] hover:bg-[var(--primary-container)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(196,192,255,0.25)]"
+            >
+              Authorize & Install App
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Authenticated & store-linked dashboard dashboard view
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans flex relative overflow-hidden transition-colors duration-300">
       
@@ -782,7 +742,7 @@ function App() {
         darkMode={darkMode} 
         setDarkMode={setDarkMode} 
         onCreateTicketClick={handleCreateTicketClick} 
-        onDisconnectClick={handleDisconnectStore} 
+        onDisconnectClick={handleLogout} 
       />
 
       {/* Main Container Layout offset by Sidebar (w-70 = 280px) */}
@@ -792,8 +752,8 @@ function App() {
         <Topbar 
           searchQuery={searchQuery} 
           setSearchQuery={setSearchQuery} 
-          userName="Admin System"
-          userRole="Store Master"
+          userName={shopDomain.replace('.myshopify.com', '') || 'Store Admin'}
+          userRole="Store Admin"
         />
 
         {/* Dynamic Page Component Mounting */}
@@ -843,7 +803,7 @@ function App() {
             <Stores 
               currentShopDomain={shopDomain}
               currentShopId={shopId}
-              onDisconnectStore={handleDisconnectStore}
+              onDisconnectStore={handleLogout}
               onAddStoreSubmit={handleAddStoreSubmit}
               addStoreLoading={addStoreLoading}
             />

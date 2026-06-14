@@ -7,6 +7,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const errorHandler = require('./src/middleware/errorHandler');
 const verifyShop = require('./src/middleware/verifyShop');
+const verifySessionToken = require('./src/middleware/verifySessionToken');
 const db = require('./src/db/db');
 
 const app = express();
@@ -55,6 +56,7 @@ const shopifyRoute = require('./src/routes/shopify');
 const apiRoute = require('./src/routes/api');
 const webhooksRoute = require('./src/routes/webhooks');
 const { resolveOrder } = require('./src/controllers/resolveController');
+const authRoutes = require('./src/routes/auth');
 
 app.get('/health', async (req, res) => {
     try {
@@ -79,11 +81,12 @@ app.get('/success', (req, res) => {
     res.redirect(`${frontendUrl}/dashboard`);
 });
 
-app.use('/api/tickets', ticketsRoute);
+app.use('/api/tickets', verifySessionToken, ticketsRoute);
 app.use('/shopify', shopifyRoute);
-app.use('/api', apiRoute);
+app.use('/api', verifySessionToken, apiRoute);
 app.use('/webhooks', webhooksRoute);
-app.post('/resolve-order', verifyShop, resolveOrder);
+app.use('/api/auth', authRoutes);
+app.post('/resolve-order', verifySessionToken, resolveOrder);
 
 // Error handler
 app.use(errorHandler);

@@ -162,8 +162,10 @@ router.get('/callback', async (req, res) => {
         console.warn('[Canned] Failed to seed default canned responses:', cannedError?.message || cannedError);
     }
 
-    // Redirect to frontend with both shop domain and ID
-    res.redirect(`http://localhost:8080/dashboard?shop_id=${shopId}&shop=${shop}`);
+    // Redirect to frontend with both shop domain and host (enabling Shopify App Bridge in iframe)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    const hostParam = req.query.host ? `&host=${encodeURIComponent(req.query.host)}` : '';
+    res.redirect(`${frontendUrl}/?shop=${shop}${hostParam}`);
 });
 
 // Step 3: Register webhooks

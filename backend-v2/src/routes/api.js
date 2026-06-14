@@ -39,8 +39,8 @@ router.get('/shops', async (req, res) => {
     }
 });
 
-// Apply auth middleware to all routes below this line
-router.use(verifyShop);
+// Apply auth middleware to all routes below this line (handled globally in index.js)
+// router.use(verifyShop);
 
 // GET /api/tickets?shop_id=xxx
 router.get('/tickets', async (req, res) => {
