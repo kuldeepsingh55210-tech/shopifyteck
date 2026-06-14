@@ -2,15 +2,33 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Gets a fresh session token from Shopify App Bridge.
+ * Supports App Bridge v4 function call directly, or v3 fallback get() method.
  */
 export async function getSessionToken(): Promise<string> {
-  if (typeof window !== 'undefined' && (window as any).shopify?.idToken) {
-    try {
-      const token = await (window as any).shopify.idToken.get();
-      if (token) return token;
-    } catch (err) {
-      console.warn('[Shopify Auth] Failed to retrieve session token:', err);
+  if (typeof window !== 'undefined' && (window as any).shopify) {
+    const shopify = (window as any).shopify;
+
+    // 1. Direct function call (App Bridge v4+)
+    if (typeof shopify.idToken === 'function') {
+      try {
+        const token = await shopify.idToken();
+        if (token) return token;
+      } catch (err) {
+        console.warn('[Shopify Auth] Failed to retrieve session token via direct idToken():', err);
+      }
     }
+
+    // 2. Object with .get() method (Legacy/Compatibility)
+    if (shopify.idToken && typeof shopify.idToken.get === 'function') {
+      try {
+        const token = await shopify.idToken.get();
+        if (token) return token;
+      } catch (err) {
+        console.warn('[Shopify Auth] Failed to retrieve session token via idToken.get():', err);
+      }
+    }
+
+    throw new Error('Shopify App Bridge idToken API not available');
   }
   return '';
 }
@@ -39,8 +57,9 @@ export async function authedFetch(url: string, options: RequestInit = {}): Promi
     const shop = params.get('shop') || localStorage.getItem('shop_domain') || '';
     
     if (shop) {
-      // Direct parent page to backend re-authentication route
-      window.top!.location.href = `${API_URL}/shopify/auth?shop=${shop}`;
+      // Safe top-level frame cross-origin redirect using window.open(..., '_top')
+      const reAuthUrl = `${API_URL}/shopify/auth?shop=${shop}`;
+      window.open(reAuthUrl, '_top');
     }
   }
 

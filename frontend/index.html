@@ -7,6 +7,21 @@
     <title>ORYQX AutoSupport AI - Enterprise Dashboard</title>
     <!-- Shopify App Bridge Config -->
     <meta name="shopify-api-key" content="%VITE_SHOPIFY_API_KEY%" />
+    <script>
+      // Ensure host and shop parameters are preserved in the iframe context
+      if (window.parent !== window) {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('host')) {
+          const savedHost = localStorage.getItem('shopify_host');
+          if (savedHost) {
+            params.set('host', savedHost);
+            const shop = params.get('shop') || localStorage.getItem('shop_domain') || '';
+            if (shop) params.set('shop', shop);
+            window.location.search = params.toString();
+          }
+        }
+      }
+    </script>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

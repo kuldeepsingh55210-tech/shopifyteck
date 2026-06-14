@@ -168,7 +168,7 @@ function App() {
     setSelectedTicketId(null);
     const shop = shopDomain || localStorage.getItem('shop_domain') || '';
     if (shop) {
-      window.top!.location.href = `https://${shop}/admin/apps/${import.meta.env.VITE_SHOPIFY_API_KEY}`;
+      window.open(`https://${shop}/admin/apps/${import.meta.env.VITE_SHOPIFY_API_KEY}`, '_top');
     }
   };
 
@@ -319,7 +319,7 @@ function App() {
       return;
     }
     const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '';
-    window.top!.location.href = `https://${domain}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`;
+    window.open(`https://${domain}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`, '_top');
   };
 
   // CSAT rating simulation submit
