@@ -11,7 +11,9 @@ import {
   Edit3, 
   Info,
   Save,
-  FileText
+  FileText,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface SettingsData {
@@ -114,6 +116,14 @@ export const Settings: React.FC<SettingsProps> = ({
   const [activeTab, setActiveTab] = useState<'ai' | 'kb' | 'canned'>('ai');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editCannedForm, setEditCannedForm] = useState({ id: 0, title: '', intent: 'order_status', message: '', is_active: true });
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const snippet = `<script src="https://api.oryqx.com/widget.js" data-shop="${shopDomain}" async></script>`;
+    navigator.clipboard.writeText(snippet);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleEditClick = (item: any) => {
     setEditCannedForm(item);
@@ -186,6 +196,34 @@ export const Settings: React.FC<SettingsProps> = ({
                       ONLINE
                     </span>
                   </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6">
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono mb-4">Storefront Widget</h3>
+                <div className="space-y-4">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Paste this script before the <code>&lt;/body&gt;</code> tag in your Shopify <code>theme.liquid</code> layout file.
+                  </p>
+                  
+                  <div className="relative p-3 pr-10 rounded-xl bg-[#0A0B0F] border border-[var(--border)] font-mono text-[10px] break-all select-all">
+                    <span className="text-[var(--text-secondary)]">
+                      {`<script src="https://api.oryqx.com/widget.js" data-shop="${shopDomain}" async></script>`}
+                    </span>
+                    <button 
+                      onClick={handleCopy}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-lg bg-[var(--surface-low)] border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--primary)] transition duration-200 cursor-pointer flex items-center justify-center"
+                      title="Copy to Clipboard"
+                    >
+                      {copied ? <Check size={12} className="text-[var(--tertiary)]" /> : <Copy size={12} />}
+                    </button>
+                  </div>
+
+                  {copied && (
+                    <p className="text-[10px] text-[var(--tertiary)] font-mono text-center">
+                      Copied code snippet to clipboard!
+                    </p>
+                  )}
                 </div>
               </GlassCard>
 

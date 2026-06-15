@@ -7,6 +7,11 @@ const verifyShop = require('./verifyShop');
  * If no Authorization header is provided, it falls back to verifyShop (for testing tools and backwards compatibility).
  */
 const verifySessionToken = async (req, res, next) => {
+    // Bypass authentication for public endpoint /api/shops (e.g. used by the storefront widget to resolve shop ID)
+    if (req.originalUrl && req.originalUrl.split('?')[0] === '/api/shops') {
+        return next();
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

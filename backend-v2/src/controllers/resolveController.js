@@ -8,14 +8,22 @@ const reasoningService = require('../services/reasoningService');
 const ragService = require('../services/ragService');
 
 const resolveOrder = async (req, res) => {
-    const { shop_id, customer_message, order_number, customer_email } = req.body;
+    let { shop_id, customer_message, order_number, customer_email } = req.body;
 
     console.log(`\n[Resolve] ========== STARTING REASONING FLOW ==========`);
     console.log(`[Resolve] shop_id: ${shop_id}, order: ${order_number}, email: ${customer_email}`);
 
     // Step 0: Validate inputs
-    if (!shop_id || !customer_message || !order_number || !customer_email) {
-        return res.status(400).json({ success: false, error: 'All fields required: shop_id, customer_message, order_number, customer_email' });
+    if (!shop_id || !customer_message) {
+        return res.status(400).json({ success: false, error: 'shop_id and customer_message are required' });
+    }
+
+    // Default fallback values if skipped by storefront customer widget
+    if (!customer_email || !customer_email.trim()) {
+        customer_email = 'guest@customer.com';
+    }
+    if (!order_number || !order_number.trim()) {
+        order_number = 'NONE';
     }
 
     // Fetch shop from DB

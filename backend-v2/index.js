@@ -5,6 +5,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 const errorHandler = require('./src/middleware/errorHandler');
 const verifyShop = require('./src/middleware/verifyShop');
 const verifySessionToken = require('./src/middleware/verifySessionToken');
@@ -14,26 +15,53 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [
-            process.env.FRONTEND_URL,
-            'http://localhost:5173',
-            'http://localhost:8080'
-        ].filter(Boolean);
 
-        // Allow requests with no origin (mobile apps, curl, Shopify webhooks)
-        if (!origin) return callback(null, true);
+// Configure dynamic CORS options depending on the route (allow widgets to query storefront endpoints)
+const corsOptionsDelegate = function (req, callback) {
+    let corsOptions;
+    const requestPath = req.path;
+    
+    const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'http://localhost:5173',
+        'http://localhost:8080'
+    ].filter(Boolean);
 
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.warn(`[CORS] Blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
+    // If it's the widget endpoints, allow any origin (reflect incoming storefront origin)
+    if (requestPath === '/resolve-order' || requestPath === '/api/shops') {
+        corsOptions = { 
+            origin: true,
+            methods: ['GET', 'POST', 'OPTIONS'],
+            credentials: true
+        };
+    } else {
+        corsOptions = {
+            origin: function(originVal, cb) {
+                if (!originVal || allowedOrigins.includes(originVal)) {
+                    cb(null, true);
+                } else {
+                    console.warn(`[CORS] Blocked origin: ${originVal}`);
+                    cb(new Error('Not allowed by CORS'));
+                }
+            },
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            credentials: true
+        };
+    }
+    callback(null, corsOptions);
+};
+
+app.use(cors(corsOptionsDelegate));
+
+// Serve static files (such as widget.js) from the public folder
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '5m',
+    setHeaders: (res, filepath) => {
+        if (filepath.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+            res.setHeader('Cache-Control', 'public, max-age=300');
         }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
+    }
 }));
 
 // Capture raw body for webhook signature validation
