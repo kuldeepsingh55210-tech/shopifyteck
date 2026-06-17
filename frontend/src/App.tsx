@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Sidebar } from './app/components/Sidebar';
 import { Topbar } from './app/components/Topbar';
 import { Dashboard } from './app/components/pages/Dashboard';
@@ -6,6 +6,7 @@ import { Tickets } from './app/components/pages/Tickets';
 import { Analytics } from './app/components/pages/Analytics';
 import { Stores } from './app/components/pages/Stores';
 import { Settings } from './app/components/pages/Settings';
+import { Onboarding } from './app/components/pages/Onboarding';
 import { Loader2 } from 'lucide-react';
 import { authedFetch } from './lib/shopifyAuth';
 const fetch = authedFetch;
@@ -73,15 +74,16 @@ interface CsatStats {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function App() {
-  const [page, setPage] = useState<'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings'>('dashboard');
+  const [page, setPage] = useState<'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding'>('dashboard');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
-    return saved !== null ? saved === 'true' : true; // Default to dark mode
+    return saved !== null ? saved === 'true' : true;
   });
 
   // Shop Auth states
   const [shopChecking, setShopChecking] = useState(true);
   const [shopError, setShopError] = useState('');
+  const [isNewMerchant, setIsNewMerchant] = useState(false);
 
   // Shop states
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -142,10 +144,8 @@ function App() {
   const [kbMessage, setKbMessage] = useState('');
   const [kbError, setKbError] = useState('');
 
-  // Add store loading state
   const addStoreLoading = false;
 
-  // Apply dark mode styling class
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -155,11 +155,11 @@ function App() {
     localStorage.setItem('darkMode', String(darkMode));
   }, [darkMode]);
 
-  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem('shop_id');
     localStorage.removeItem('shop_domain');
     localStorage.removeItem('shopify_host');
+    localStorage.removeItem('onboarding_complete');
     setShopId('');
     setShopDomain('');
     setTickets([]);
@@ -172,26 +172,21 @@ function App() {
     }
   };
 
-  // Fetch core data
   const fetchData = async (sid: string) => {
     try {
       const domain = shopDomain || localStorage.getItem('shop_domain') || '';
-      
       const promises = [
         fetch(`${API_URL}/api/tickets?shop_id=${sid}`),
         fetch(`${API_URL}/api/stats?shop_id=${sid}`)
       ];
-      
       if (domain) {
         promises.push(fetch(`${API_URL}/api/csat/stats?shop_domain=${encodeURIComponent(domain)}`));
       }
-
       const results = await Promise.all(promises);
       const ticketsData = await results[0].json();
       const statsData = await results[1].json();
       setTickets(ticketsData);
       setStats(statsData);
-
       if (domain && results[2]) {
         const csatData = await results[2].json();
         setCsatStats(csatData);
@@ -201,9 +196,6 @@ function App() {
     }
   };
 
-
-
-  // Fetch charts & trends for Analytics
   const fetchAnalytics = async () => {
     if (!shopId || !shopDomain) return;
     try {
@@ -212,14 +204,10 @@ function App() {
         fetch(`${API_URL}/api/analytics/resolution-rate?shop_id=${shopId}`),
         fetch(`${API_URL}/api/analytics/sentiment-trend?shop_domain=${encodeURIComponent(shopDomain)}`)
       ]);
-
       const ticketsData = ticketsRes.ok ? await ticketsRes.json() : [];
       const resolutionData = resolutionRes.ok ? await resolutionRes.json() : [];
       const sentimentData = sentimentRes.ok ? await sentimentRes.json() : [];
-
       setTicketsOverTime(Array.isArray(ticketsData) ? ticketsData : []);
-
-      // Remap resolution rate
       if (Array.isArray(resolutionData)) {
         setResolutionRate(resolutionData.map(item => ({
           date: item.date || item.day || 'n/a',
@@ -229,8 +217,6 @@ function App() {
       } else {
         setResolutionRate([]);
       }
-
-      // Remap sentiment
       if (Array.isArray(sentimentData)) {
         setSentimentTrend(sentimentData.map(item => ({
           date: item.date || item.day || 'n/a',
@@ -244,7 +230,6 @@ function App() {
     }
   };
 
-  // Fetch FAQ knowledge list
   const fetchKnowledgeBase = async () => {
     if (!shopDomain) return;
     setKbLoading(true);
@@ -262,7 +247,6 @@ function App() {
     }
   };
 
-  // Fetch store-wide settings
   const fetchSettings = async () => {
     if (!shopDomain) return;
     try {
@@ -286,7 +270,6 @@ function App() {
     }
   };
 
-  // Save configurations
   const saveSettings = async () => {
     if (!shopDomain) return;
     setSettingsSaving(true);
@@ -299,9 +282,7 @@ function App() {
         body: JSON.stringify({ shop_domain: shopDomain, ...settings })
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Unable to save configuration variables');
-      }
+      if (!res.ok) throw new Error(data.error || 'Unable to save configuration variables');
       setSettingsMessage('Settings saved successfully.');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Save configurations failed';
@@ -311,7 +292,6 @@ function App() {
     }
   };
 
-  // Add store submit callback (from Stores.tsx)
   const handleAddStoreSubmit = async (domain: string) => {
     if (!domain.trim()) return;
     if (!domain.match(/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/)) {
@@ -322,7 +302,6 @@ function App() {
     window.open(`https://${domain}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`, '_top');
   };
 
-  // CSAT rating simulation submit
   const handleCsatSubmit = async (rating: number) => {
     if (!testResult || !testResult.ticket_id) return;
     setCsatSubmitting(true);
@@ -352,7 +331,6 @@ function App() {
     }
   };
 
-  // Run AI order resolver test simulation
   const handleTest = async (e: React.FormEvent) => {
     e.preventDefault();
     setTestLoading(true);
@@ -365,9 +343,7 @@ function App() {
         credentials: 'include',
         body: JSON.stringify({ shop_id: shopId, ...testForm })
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       const data = await res.json();
       setTestResult(data);
       fetchData(shopId);
@@ -379,7 +355,6 @@ function App() {
     }
   };
 
-  // Knowledge base FAQ operations
   const handleAddKnowledgeEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     setKbMessage('');
@@ -388,23 +363,15 @@ function App() {
       setKbError('Question and answer parameters are required');
       return;
     }
-
     setKbLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/knowledge-base`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_domain: shopDomain,
-          category: kbCategory,
-          question: kbQuestion,
-          answer: kbAnswer
-        })
+        body: JSON.stringify({ shop_domain: shopDomain, category: kbCategory, question: kbQuestion, answer: kbAnswer })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to add entry');
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to add entry');
       setKbMessage('Knowledge FAQ entry added.');
       setKbQuestion('');
       setKbAnswer('');
@@ -428,9 +395,7 @@ function App() {
         body: JSON.stringify({ shop_domain: shopDomain })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to remove FAQ entry');
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to remove FAQ entry');
       setKbMessage('Entry deleted successfully.');
       fetchKnowledgeBase();
     } catch (err) {
@@ -440,22 +405,11 @@ function App() {
   };
 
   const parseBulkFaqs = (text: string) => {
-    return text
-      .split(/---/)
-      .map(block => block.trim())
-      .filter(Boolean)
-      .map(block => {
-        const questionMatch = block.match(/Q:\s*(.+)/i);
-        const answerMatch = block.match(/A:\s*([\s\S]+)/i);
-        return questionMatch && answerMatch
-          ? {
-              category: 'General',
-              question: questionMatch[1].trim(),
-              answer: answerMatch[1].trim()
-            }
-          : null;
-      })
-      .filter(item => item !== null) as { category: string; question: string; answer: string }[];
+    return text.split(/---/).map(block => block.trim()).filter(Boolean).map(block => {
+      const questionMatch = block.match(/Q:\s*(.+)/i);
+      const answerMatch = block.match(/A:\s*([\s\S]+)/i);
+      return questionMatch && answerMatch ? { category: 'General', question: questionMatch[1].trim(), answer: answerMatch[1].trim() } : null;
+    }).filter(item => item !== null) as { category: string; question: string; answer: string }[];
   };
 
   const handleImportFaqs = async () => {
@@ -466,7 +420,6 @@ function App() {
       setKbError('No valid Q/A templates parsed. Use Q: and A: lines separated by ---.');
       return;
     }
-
     setKbLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/knowledge-base/bulk`, {
@@ -475,9 +428,7 @@ function App() {
         body: JSON.stringify({ shop_domain: shopDomain, entries })
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Bulk FAQs import failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Bulk FAQs import failed');
       setKbMessage(`${data.count || 0} entries successfully bulk imported.`);
       setKbBulkText('');
       fetchKnowledgeBase();
@@ -489,7 +440,6 @@ function App() {
     }
   };
 
-  // Canned replies operations
   const fetchCannedResponses = async () => {
     if (!shopDomain) return;
     setCannedLoading(true);
@@ -516,12 +466,7 @@ function App() {
       const res = await fetch(`${API_URL}/api/canned-responses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_domain: shopDomain,
-          title: cannedTitle,
-          intent: cannedIntent,
-          message: cannedMessage
-        })
+        body: JSON.stringify({ shop_domain: shopDomain, title: cannedTitle, intent: cannedIntent, message: cannedMessage })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -542,16 +487,9 @@ function App() {
       const res = await fetch(`${API_URL}/api/canned-responses/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: item.title,
-          intent: item.intent,
-          message: item.message,
-          is_active: !currentActive
-        })
+        body: JSON.stringify({ title: item.title, intent: item.intent, message: item.message, is_active: !currentActive })
       });
-      if (res.ok) {
-        fetchCannedResponses();
-      }
+      if (res.ok) fetchCannedResponses();
     } catch (err) {
       console.error('[Canned] Toggle template status failed:', err);
     }
@@ -560,12 +498,8 @@ function App() {
   const handleDeleteCannedResponse = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this canned response template?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/canned-responses/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        fetchCannedResponses();
-      }
+      const res = await fetch(`${API_URL}/api/canned-responses/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchCannedResponses();
     } catch (err) {
       console.error('[Canned] Delete canned response failed:', err);
     }
@@ -576,12 +510,7 @@ function App() {
       const res = await fetch(`${API_URL}/api/canned-responses/${form.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          intent: form.intent,
-          message: form.message,
-          is_active: form.is_active
-        })
+        body: JSON.stringify({ title: form.title, intent: form.intent, message: form.message, is_active: form.is_active })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -597,39 +526,31 @@ function App() {
     }
   };
 
-  // Run on mount - Enforce Embedded App initialization and verify installation
   useEffect(() => {
     const initShop = async () => {
       const params = new URLSearchParams(window.location.search);
       let shop = params.get('shop');
-      
-      if (!shop) {
-        shop = localStorage.getItem('shop_domain');
-      }
-
+      if (!shop) shop = localStorage.getItem('shop_domain');
       if (!shop) {
         setShopError('Shop parameter missing. Please open this app from your Shopify Admin.');
         setShopChecking(false);
         return;
       }
-
       const cleanShop = shop.trim().replace(/^https?:\/\//, '');
       setShopDomain(cleanShop);
       localStorage.setItem('shop_domain', cleanShop);
-
       try {
         setShopChecking(true);
         setShopError('');
-        
         const res = await fetch(`${API_URL}/api/shops?domain=${encodeURIComponent(cleanShop)}`);
-        
         if (res.ok) {
           const shopData = await res.json();
           setShopId(shopData.id.toString());
           localStorage.setItem('shop_id', shopData.id.toString());
-          
-          // Fetch core data
           await fetchData(shopData.id.toString());
+          // Check if new merchant
+          const isNew = !localStorage.getItem('onboarding_complete');
+          if (isNew) setIsNewMerchant(true);
         } else {
           setShopError('App not properly installed. Please reinstall from Shopify Admin.');
         }
@@ -640,16 +561,12 @@ function App() {
         setShopChecking(false);
       }
     };
-
     initShop();
   }, []);
 
-  // Fetch contextual details depending on page routing
   useEffect(() => {
     if (shopId && shopDomain) {
-      if (page === 'dashboard' || page === 'analytics') {
-        fetchAnalytics();
-      }
+      if (page === 'dashboard' || page === 'analytics') fetchAnalytics();
       if (page === 'settings') {
         fetchSettings();
         fetchKnowledgeBase();
@@ -658,7 +575,6 @@ function App() {
     }
   }, [page, shopId, shopDomain]);
 
-  // Search Filtered Tickets
   const filteredTickets = tickets.filter(ticket => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -676,7 +592,6 @@ function App() {
     alert('Create Ticket simulation triggered. Use the Test Simulator console.');
   };
 
-  // 1. Shop Loading/Checking state
   if (shopChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0B0F] relative overflow-hidden font-sans text-slate-200">
@@ -690,35 +605,24 @@ function App() {
     );
   }
 
-  // 2. Shop Error/Uninstalled state
   if (shopError) {
     const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '';
     const cleanShop = shopDomain.trim().replace(/^https?:\/\//, '');
-    const installUrl = cleanShop 
+    const installUrl = cleanShop
       ? `https://${cleanShop}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`
       : '#';
-
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0B0F] relative overflow-hidden font-sans text-[var(--text)] px-4">
         <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[var(--primary)]/10 blur-[130px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-[var(--secondary)]/10 blur-[130px] pointer-events-none"></div>
-        
         <div className="relative z-10 w-full max-w-md p-8 backdrop-blur-xl bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.5)] text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#0a0b0f] border border-[var(--border)] flex items-center justify-center p-1 shadow-[0_0_20px_var(--border-glow)] mb-6 mx-auto text-[var(--danger)]">
             <Loader2 className="w-8 h-8 animate-spin text-[var(--danger)]" />
           </div>
-
           <h1 className="text-xl font-bold font-display text-white mb-2 tracking-tight">App Installation Required</h1>
-          <p className="text-[var(--text-muted)] text-sm mb-6 leading-relaxed">
-            {shopError}
-          </p>
-
+          <p className="text-[var(--text-muted)] text-sm mb-6 leading-relaxed">{shopError}</p>
           {cleanShop && (
-            <a
-              href={installUrl}
-              target="_top"
-              className="w-full py-2.5 rounded-lg font-semibold text-[#0A0B0F] bg-[var(--primary)] hover:bg-[var(--primary-container)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(196,192,255,0.25)]"
-            >
+            <a href={installUrl} target="_top" className="w-full py-2.5 rounded-lg font-semibold text-[#0A0B0F] bg-[var(--primary)] hover:bg-[var(--primary-container)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(196,192,255,0.25)]">
               Authorize & Install App
             </a>
           )}
@@ -727,51 +631,52 @@ function App() {
     );
   }
 
-  // 4. Authenticated & store-linked dashboard dashboard view
+  // Onboarding for new merchants
+  if (isNewMerchant) {
+    return (
+      <Onboarding
+        shopDomain={shopDomain}
+        onComplete={() => {
+          localStorage.setItem('onboarding_complete', 'true');
+          setIsNewMerchant(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans flex relative overflow-hidden transition-colors duration-300">
-      
-      {/* Floating Neon Background Orbs */}
       <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[var(--primary)]/5 blur-[150px] pointer-events-none"></div>
       <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[var(--secondary)]/5 blur-[150px] pointer-events-none"></div>
 
-      {/* Shared Navigation Sidebar */}
-      <Sidebar 
-        activePage={page} 
-        setActivePage={setPage} 
-        darkMode={darkMode} 
-        setDarkMode={setDarkMode} 
-        onCreateTicketClick={handleCreateTicketClick} 
-        onDisconnectClick={handleLogout} 
+      <Sidebar
+        activePage={page}
+        setActivePage={setPage}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onCreateTicketClick={handleCreateTicketClick}
+        onDisconnectClick={handleLogout}
       />
 
-      {/* Main Container Layout offset by Sidebar (w-70 = 280px) */}
       <div className="pl-70 flex flex-col min-h-screen w-full relative z-10">
-        
-        {/* Shared Topbar */}
-        <Topbar 
-          searchQuery={searchQuery} 
-          setSearchQuery={setSearchQuery} 
+        <Topbar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
           userName={shopDomain.replace('.myshopify.com', '') || 'Store Admin'}
           userRole="Store Admin"
         />
 
-        {/* Dynamic Page Component Mounting */}
         <main className="flex-1 pt-24 px-8 pb-12 w-full max-w-7xl mx-auto">
           {page === 'dashboard' && (
-            <Dashboard 
-              tickets={filteredTickets} 
-              stats={stats} 
+            <Dashboard
+              tickets={filteredTickets}
+              stats={stats}
               onViewAllTickets={() => setPage('tickets')}
-              onSelectTicket={(ticketId) => {
-                setSelectedTicketId(ticketId);
-                setPage('tickets');
-              }}
+              onSelectTicket={(ticketId) => { setSelectedTicketId(ticketId); setPage('tickets'); }}
             />
           )}
-
           {page === 'tickets' && (
-            <Tickets 
+            <Tickets
               tickets={filteredTickets}
               selectedTicketId={selectedTicketId}
               onBackToDashboard={() => setPage('dashboard')}
@@ -789,18 +694,16 @@ function App() {
               onCsatSubmit={handleCsatSubmit}
             />
           )}
-
           {page === 'analytics' && (
-            <Analytics 
+            <Analytics
               ticketsOverTime={ticketsOverTime}
               resolutionRate={resolutionRate}
               sentimentTrend={sentimentTrend}
               csatStats={csatStats}
             />
           )}
-
           {page === 'stores' && (
-            <Stores 
+            <Stores
               currentShopDomain={shopDomain}
               currentShopId={shopId}
               onDisconnectStore={handleLogout}
@@ -808,9 +711,8 @@ function App() {
               addStoreLoading={addStoreLoading}
             />
           )}
-
           {page === 'settings' && (
-            <Settings 
+            <Settings
               shopDomain={shopDomain}
               settings={settings}
               setSettings={setSettings}
@@ -818,7 +720,6 @@ function App() {
               settingsError={settingsError}
               settingsMessage={settingsMessage}
               onSaveSettings={saveSettings}
-              
               knowledgeEntries={knowledgeEntries}
               kbCategory={kbCategory}
               setKbCategory={setKbCategory}
@@ -835,7 +736,6 @@ function App() {
               onDeleteKnowledgeEntry={handleDeleteKnowledgeEntry}
               onImportFaqs={handleImportFaqs}
               onRefreshKb={fetchKnowledgeBase}
-              
               cannedResponses={cannedResponses}
               cannedLoading={cannedLoading}
               cannedTitle={cannedTitle}
@@ -853,7 +753,6 @@ function App() {
             />
           )}
         </main>
-
       </div>
     </div>
   );
