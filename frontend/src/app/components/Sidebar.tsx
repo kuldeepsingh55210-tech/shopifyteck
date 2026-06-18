@@ -1,16 +1,5 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Ticket, 
-  BarChart3, 
-  Store, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
-  Plus, 
-  Sun, 
-  Moon 
-} from 'lucide-react';
+import { LayoutDashboard, Ticket, BarChart3, Store, Settings, HelpCircle, LogOut, Plus, Sun, Moon } from 'lucide-react';
 
 interface SidebarProps {
   activePage: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding';
@@ -21,14 +10,7 @@ interface SidebarProps {
   onDisconnectClick: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  activePage,
-  setActivePage,
-  darkMode,
-  setDarkMode,
-  onCreateTicketClick,
-  onDisconnectClick
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, darkMode, setDarkMode, onCreateTicketClick, onDisconnectClick }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tickets', label: 'Tickets', icon: Ticket },
@@ -38,12 +20,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ] as const;
 
   return (
-    <aside className="w-70 fixed top-0 left-0 bottom-0 z-40 bg-[#0d0e12] dark:bg-[#0d0e12] light:bg-white border-r border-[var(--border)] flex flex-col justify-between py-6">
-      
+    <aside className="w-70 fixed top-0 left-0 bottom-0 z-40 bg-[#0d0e12] border-r border-[var(--border)] flex flex-col justify-between py-6">
       <div>
-        <div className="px-6 flex justify-between items-center mb-8 relative">
+        <div className="px-6 flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0a0b0f] border border-[var(--border)] flex items-center justify-center relative p-[2px] shadow-[0_0_15px_var(--border-glow)] shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#0a0b0f] border border-[var(--border)] flex items-center justify-center p-[2px] shadow-[0_0_15px_var(--border-glow)]">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 <defs>
                   <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -59,16 +40,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </svg>
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-bold text-lg leading-tight tracking-tight text-white dark:text-white light:text-[var(--text)]">ORYQX</span>
-              <span className="font-mono text-[10px] text-[var(--text-muted)] leading-none">Enterprise Dashboard</span>
+              <span className="font-display font-bold text-lg text-white">ORYQX</span>
+              <span className="font-mono text-[10px] text-[var(--text-muted)]">Enterprise Dashboard</span>
             </div>
           </div>
-
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--primary)] transition-all duration-200 cursor-pointer"
-            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          >
+          <button onClick={() => setDarkMode(!darkMode)} className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-white transition-all duration-200 cursor-pointer">
             {darkMode ? <Sun size={15} className="text-yellow-400" /> : <Moon size={15} />}
           </button>
         </div>
@@ -81,13 +57,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActivePage(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 group cursor-pointer ${
-                  isActive
-                    ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)] shadow-[inset_4px_0_10px_rgba(196,192,255,0.05)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:translate-x-1 hover:shadow-[0_0_10px_var(--border-glow)]'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 group cursor-pointer ${isActive ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:translate-x-1'}`}
               >
-                <Icon size={18} className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]'}`} />
+                <Icon size={18} className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}`} />
                 {item.label}
               </button>
             );
@@ -96,28 +68,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="px-4 space-y-4">
-        <button
-          onClick={onCreateTicketClick}
-          className="w-full py-2.5 px-4 rounded-lg font-semibold text-white bg-gradient-to-r from-[var(--primary-container)] to-[var(--secondary-container)] hover:from-[var(--primary)] hover:to-[var(--secondary)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(108,99,255,0.25)] hover:shadow-[0_0_25px_rgba(108,99,255,0.45)] transform active:scale-[0.98]"
-        >
+        <button onClick={onCreateTicketClick} className="w-full py-2.5 px-4 rounded-lg font-semibold text-white bg-gradient-to-r from-[var(--primary-container)] to-[var(--secondary-container)] hover:from-[var(--primary)] hover:to-[var(--secondary)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer">
           <Plus size={16} strokeWidth={2.5} />
           Create Ticket
         </button>
 
         <div className="pt-2 border-t border-[var(--border)] space-y-1">
-          
-            href="https://oryqx.com/support"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-4 py-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text)] transition duration-200"
-          >
+          <a href="https://oryqx.com/support" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text)] transition duration-200">
             <HelpCircle size={14} />
             Support Helpdesk
           </a>
-          <button
-            onClick={onDisconnectClick}
-            className="w-full flex items-center gap-3 px-4 py-2 text-xs font-mono text-[var(--danger)]/80 hover:text-[var(--danger)] transition duration-200 cursor-pointer"
-          >
+          <button onClick={onDisconnectClick} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-mono text-[var(--danger)]/80 hover:text-[var(--danger)] transition duration-200 cursor-pointer">
             <LogOut size={14} />
             Disconnect Store
           </button>
