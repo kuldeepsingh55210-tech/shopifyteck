@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 
 interface SidebarProps {
-  activePage: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings';
-  setActivePage: (page: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings') => void;
+  activePage: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding';
+  setActivePage: (page: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding') => void;
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
   onCreateTicketClick: () => void;
@@ -44,7 +44,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div>
         <div className="px-6 flex justify-between items-center mb-8 relative">
           <div className="flex items-center gap-3">
-            {/* Logo Recreated from description */}
             <div className="w-10 h-10 rounded-xl bg-[#0a0b0f] border border-[var(--border)] flex items-center justify-center relative p-[2px] shadow-[0_0_15px_var(--border-glow)] shrink-0">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 <defs>
@@ -66,7 +65,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Theme Toggle Button */}
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--primary)] transition-all duration-200 cursor-pointer"
@@ -76,7 +74,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Navigation Items */}
         <nav className="px-3 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -99,9 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Actions Area */}
       <div className="px-4 space-y-4">
-        {/* Create Ticket Gradient Button */}
         <button
           onClick={onCreateTicketClick}
           className="w-full py-2.5 px-4 rounded-lg font-semibold text-white bg-gradient-to-r from-[var(--primary-container)] to-[var(--secondary-container)] hover:from-[var(--primary)] hover:to-[var(--secondary)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(108,99,255,0.25)] hover:shadow-[0_0_25px_rgba(108,99,255,0.45)] transform active:scale-[0.98]"
@@ -111,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <div className="pt-2 border-t border-[var(--border)] space-y-1">
-          <a
+          
             href="https://oryqx.com/support"
             target="_blank"
             rel="noopener noreferrer"
