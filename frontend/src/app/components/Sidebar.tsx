@@ -40,7 +40,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="w-70 fixed top-0 left-0 bottom-0 z-40 bg-[#0d0e12] dark:bg-[#0d0e12] light:bg-white border-r border-[var(--border)] flex flex-col justify-between py-6">
       
-      {/* Top Header Section */}
       <div>
         <div className="px-6 flex justify-between items-center mb-8 relative">
           <div className="flex items-center gap-3">
