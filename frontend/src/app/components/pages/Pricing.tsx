@@ -6,10 +6,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 interface PricingProps {
   shopDomain: string;
   currentPlan?: string;
-  onUpgrade?: () => void;
 }
 
-export function Pricing({ shopDomain, currentPlan = 'free', onUpgrade }: PricingProps) {
+export function Pricing({ shopDomain, currentPlan = 'free' }: PricingProps) {
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
   const [loading, setLoading] = useState<string | null>(null);
 
