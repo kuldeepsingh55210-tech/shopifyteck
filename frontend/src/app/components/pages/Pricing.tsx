@@ -89,7 +89,7 @@ export function Pricing({ shopDomain, currentPlan = 'free' }: PricingProps) {
   const getPrice = (plan: typeof plans[0]) => {
     if (plan.monthly_price === 0) return 'Free';
     const price = billing === 'annual' ? plan.annual_price / 12 : plan.monthly_price;
-    return `$${price}`;
+    return `$${Math.round(price)}`;
   };
 
   const getSavings = (plan: typeof plans[0]) => {
