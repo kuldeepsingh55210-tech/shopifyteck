@@ -1,9 +1,9 @@
 import React from 'react';
-import { LayoutDashboard, Ticket, BarChart3, Store, Settings, HelpCircle, LogOut, Plus, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Ticket, BarChart3, Store, Settings, CreditCard, HelpCircle, LogOut, Plus, Sun, Moon } from 'lucide-react';
 
 interface SidebarProps {
-  activePage: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding';
-  setActivePage: (page: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding') => void;
+  activePage: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding' | 'pricing';
+setActivePage: (page: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding' | 'pricing') => void;
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
   onCreateTicketClick: () => void;
@@ -17,6 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, dar
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'stores', label: 'Stores', icon: Store },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'pricing', label: 'Pricing', icon: CreditCard },
   ] as const;
 
   return (

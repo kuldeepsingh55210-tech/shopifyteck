@@ -7,6 +7,7 @@ import { Analytics } from './app/components/pages/Analytics';
 import { Stores } from './app/components/pages/Stores';
 import { Settings } from './app/components/pages/Settings';
 import { Onboarding } from './app/components/pages/Onboarding';
+import { Pricing } from './app/components/pages/Pricing';
 import { Loader2 } from 'lucide-react';
 import { authedFetch } from './lib/shopifyAuth';
 const fetch = authedFetch;
@@ -74,7 +75,7 @@ interface CsatStats {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function App() {
-  const [page, setPage] = useState<'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding'>('dashboard');
+  const [page, setPage] = useState<'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding' | 'pricing'>('dashboard');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved !== null ? saved === 'true' : true;
@@ -750,6 +751,12 @@ function App() {
               onDeleteCannedResponse={handleDeleteCannedResponse}
               onToggleCannedResponse={handleToggleCannedResponse}
               onUpdateCannedResponse={handleUpdateCannedResponse}
+            />
+          )}
+          {page === 'pricing' && (
+            <Pricing 
+              shopDomain={shopDomain}
+              currentPlan="free"
             />
           )}
         </main>
