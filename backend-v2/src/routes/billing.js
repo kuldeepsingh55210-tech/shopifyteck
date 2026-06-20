@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifySessionToken } = require('../middleware/verifySessionToken');
+const verifySessionToken = require('../middleware/verifySessionToken');
 const db = require('../db/db');
 
 // Pricing Plans
@@ -23,12 +23,12 @@ const PLANS = {
     name: 'Pro',
     monthly_price: 349.00,
     annual_price: 3490.00,
-    tickets_limit: -1, // unlimited
+    tickets_limit: -1,
     features: ['Unlimited tickets', 'Everything in Growth', 'White-label Widget', 'SLA Guarantee', 'Dedicated Support']
   }
 };
 
-// GET /api/billing/plans — Get all plans
+// GET /api/billing/plans
 router.get('/plans', (req, res) => {
   res.json({
     success: true,
@@ -41,11 +41,11 @@ router.get('/plans', (req, res) => {
   });
 });
 
-// POST /api/billing/create — Create Shopify recurring charge
+// POST /api/billing/create
 router.post('/create', verifySessionToken, async (req, res) => {
   try {
-    const { plan, billing_cycle } = req.body; // billing_cycle: 'monthly' or 'annual'
-    const shop_domain = req.shop_domain;
+    const { plan, billing_cycle } = req.body;
+    const shop_domain = req.shop_domain || req.body.shop_domain;
 
     if (!PLANS[plan]) {
       return res.status(400).json({ error: 'Invalid plan selected' });
@@ -53,11 +53,9 @@ router.post('/create', verifySessionToken, async (req, res) => {
 
     const selectedPlan = PLANS[plan];
     const price = billing_cycle === 'annual' ? selectedPlan.annual_price : selectedPlan.monthly_price;
-    const interval = billing_cycle === 'annual' ? 'ANNUAL' : 'EVERY_30_DAYS';
 
-    // Get shop access token
     const shopResult = await db.query(
-      'SELECT access_token_encrypted FROM shops WHERE domain = $1',
+      'SELECT access_token FROM shops WHERE shop_domain = $1',
       [shop_domain]
     );
 
@@ -65,17 +63,15 @@ router.post('/create', verifySessionToken, async (req, res) => {
       return res.status(404).json({ error: 'Shop not found' });
     }
 
-    // Decrypt access token
     const crypto = require('crypto');
     const algorithm = 'aes-256-cbc';
     const key = Buffer.from(process.env.TOKEN_ENCRYPTION_KEY, 'hex');
-    const [ivHex, encrypted] = shopResult.rows[0].access_token_encrypted.split(':');
+    const [ivHex, encrypted] = shopResult.rows[0].access_token.split(':');
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
     let accessToken = decipher.update(encrypted, 'hex', 'utf8');
     accessToken += decipher.final('utf8');
 
-    // Create Shopify RecurringApplicationCharge
     const shopifyResponse = await fetch(
       `https://${shop_domain}/admin/api/2024-01/recurring_application_charges.json`,
       {
@@ -90,7 +86,7 @@ router.post('/create', verifySessionToken, async (req, res) => {
             price: price,
             return_url: `${process.env.APP_URL}/api/billing/confirm?shop=${shop_domain}&plan=${plan}&cycle=${billing_cycle}`,
             trial_days: 14,
-            test: process.env.NODE_ENV !== 'production'
+            test: true
           }
         })
       }
@@ -104,7 +100,6 @@ router.post('/create', verifySessionToken, async (req, res) => {
 
     const charge = chargeData.recurring_application_charge;
 
-    // Save pending charge to DB
     await db.query(
       `INSERT INTO billing_subscriptions 
        (shop_domain, plan, billing_cycle, charge_id, status, price, created_at)
@@ -126,14 +121,13 @@ router.post('/create', verifySessionToken, async (req, res) => {
   }
 });
 
-// GET /api/billing/confirm — Confirm charge after merchant approves
+// GET /api/billing/confirm
 router.get('/confirm', async (req, res) => {
   try {
     const { shop, plan, cycle, charge_id } = req.query;
 
-    // Get shop access token
     const shopResult = await db.query(
-      'SELECT access_token_encrypted FROM shops WHERE domain = $1',
+      'SELECT access_token FROM shops WHERE shop_domain = $1',
       [shop]
     );
 
@@ -141,16 +135,14 @@ router.get('/confirm', async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL}/billing?error=shop_not_found`);
     }
 
-    // Decrypt token
     const crypto = require('crypto');
     const key = Buffer.from(process.env.TOKEN_ENCRYPTION_KEY, 'hex');
-    const [ivHex, encrypted] = shopResult.rows[0].access_token_encrypted.split(':');
+    const [ivHex, encrypted] = shopResult.rows[0].access_token.split(':');
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let accessToken = decipher.update(encrypted, 'hex', 'utf8');
     accessToken += decipher.final('utf8');
 
-    // Activate the charge
     const activateRes = await fetch(
       `https://${shop}/admin/api/2024-01/recurring_application_charges/${charge_id}/activate.json`,
       {
@@ -165,16 +157,14 @@ router.get('/confirm', async (req, res) => {
     const activateData = await activateRes.json();
 
     if (activateData.recurring_application_charge?.status === 'active') {
-      // Update DB
       await db.query(
         `UPDATE billing_subscriptions SET status = 'active', activated_at = NOW() 
          WHERE shop_domain = $1 AND charge_id = $2`,
         [shop, charge_id]
       );
 
-      // Update shop plan
       await db.query(
-        `UPDATE shops SET plan = $1, plan_activated_at = NOW() WHERE domain = $2`,
+        `UPDATE shops SET plan = $1, plan_activated_at = NOW() WHERE shop_domain = $2`,
         [plan, shop]
       );
 
@@ -189,7 +179,7 @@ router.get('/confirm', async (req, res) => {
   }
 });
 
-// GET /api/billing/status — Get current subscription
+// GET /api/billing/status
 router.get('/status', verifySessionToken, async (req, res) => {
   try {
     const shop_domain = req.shop_domain;
@@ -227,7 +217,7 @@ router.get('/status', verifySessionToken, async (req, res) => {
   }
 });
 
-// POST /api/billing/cancel — Cancel subscription
+// POST /api/billing/cancel
 router.post('/cancel', verifySessionToken, async (req, res) => {
   try {
     const shop_domain = req.shop_domain;
@@ -239,7 +229,7 @@ router.post('/cancel', verifySessionToken, async (req, res) => {
     );
 
     await db.query(
-      `UPDATE shops SET plan = 'free' WHERE domain = $1`,
+      `UPDATE shops SET plan = 'free' WHERE shop_domain = $1`,
       [shop_domain]
     );
 
