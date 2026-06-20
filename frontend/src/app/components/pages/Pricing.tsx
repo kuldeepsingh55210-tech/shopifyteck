@@ -66,15 +66,23 @@ export function Pricing({ shopDomain, currentPlan = 'free' }: PricingProps) {
     if (planId === 'free' || planId === currentPlan) return;
     setLoading(planId);
     try {
-      const res = await fetch(`${API_URL}/api/billing/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: planId,
-          billing_cycle: billing,
-          shop_domain: shopDomain
-        })
-      });
+let token = '';
+try {
+  token = await (window as any).shopify.idToken();
+} catch(e) {}
+
+const res = await fetch(`${API_URL}/api/billing/create`, {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    plan: planId,
+    billing_cycle: billing,
+    shop_domain: shopDomain
+  })
+});
       const data = await res.json();
       if (data.confirmation_url) {
         window.top!.location.href = data.confirmation_url;
