@@ -373,7 +373,7 @@
       display: grid;
       grid-template-columns: 1fr 1.2fr;
       text-align: left;
-      overflow: hidden;
+      overflow: visible;
       max-width: 1000px;
       margin: 0 auto;
       border: 1px solid var(--border-color);
@@ -385,6 +385,8 @@
       position: relative;
       background-color: var(--bg-white);
       border-right: 1px solid var(--border-color);
+      border-top-left-radius: var(--radius-card);
+      border-bottom-left-radius: var(--radius-card);
     }
     .panel-floating-badge-top {
       position: absolute;
@@ -499,11 +501,14 @@
       flex-direction: column;
       justify-content: space-between;
       position: relative;
+      overflow: visible;
+      border-top-right-radius: var(--radius-card);
+      border-bottom-right-radius: var(--radius-card);
     }
     .panel-floating-badge-right {
       position: absolute;
       top: 50%;
-      right: -30px;
+      right: -20px;
       transform: translateY(-50%);
       background-color: var(--primary);
       color: var(--text-white);
@@ -513,6 +518,7 @@
       border-radius: 50px;
       letter-spacing: 0.05em;
       white-space: nowrap;
+      z-index: 10;
     }
     .agent-header {
       display: flex;
@@ -1652,6 +1658,16 @@
       .demo-left-panel {
         border-right: none;
         border-bottom: 1px solid var(--border-color);
+        border-top-left-radius: var(--radius-card);
+        border-top-right-radius: var(--radius-card);
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      .demo-right-panel {
+        border-bottom-left-radius: var(--radius-card);
+        border-bottom-right-radius: var(--radius-card);
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
       }
       .panel-floating-badge-right {
         display: none;
@@ -2112,13 +2128,13 @@
 
             <div class="chat-messages">
               <div class="chat-bubble bubble-user">
-                Hola, ¿Cuándo llegará mi pedido #4821?
+                Hi, when will my order #4821 arrive?
               </div>
               <div class="chat-bubble bubble-ai">
-                ¡Hola! Tu pedido #4821 fue enviado ayer mediante USPS Priority Mail y está programado para ser entregado este jueves. Puedes seguirlo aquí: <span style="text-decoration: underline; cursor: pointer;">oryqx.com/track/4821</span>
+                Hi! Your order #4821 was shipped yesterday via USPS Priority Mail and is scheduled to arrive this Thursday. Track it here: <span style="text-decoration: underline; cursor: pointer;">oryqx.com/track/4821</span> ✨
               </div>
               <div class="chat-bubble bubble-user">
-                ¡Perfecto, gracias!
+                Perfect, thank you!
               </div>
             </div>
           </div>
