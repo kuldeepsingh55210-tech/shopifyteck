@@ -436,9 +436,9 @@ router.get('/analytics/dashboard', async (req, res) => {
 
         // Sentiment Trends (last 7 days)
         const sentimentTrends = await db.query(
-            `SELECT DATE(created_at) as date, ROUND(AVG(CASE WHEN sentiment = 'angry' THEN 0 WHEN sentiment = 'frustrated' THEN 0.2 WHEN sentiment = 'neutral' THEN 0.5 WHEN sentiment = 'happy' THEN 1 ELSE 0.5 END)::numeric, 2) * 100 as average_sentiment
-             FROM conversation_history WHERE shop_domain = $2 AND created_at >= CURRENT_DATE - INTERVAL '7 days' 
-             GROUP BY DATE(created_at) ORDER BY date ASC`,
+            `SELECT DATE(ch.created_at) as date, ROUND(AVG(CASE WHEN ch.sentiment = 'angry' THEN 0 WHEN ch.sentiment = 'frustrated' THEN 0.2 WHEN ch.sentiment = 'neutral' THEN 0.5 WHEN ch.sentiment = 'happy' THEN 1 ELSE 0.5 END)::numeric, 2) * 100 as average_sentiment
+             FROM conversation_history ch WHERE ch.shop_domain = $1 AND ch.created_at >= CURRENT_DATE - INTERVAL '7 days' 
+             GROUP BY DATE(ch.created_at) ORDER BY date ASC`,
             [shop_domain]
         );
 

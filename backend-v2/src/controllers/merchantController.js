@@ -166,23 +166,23 @@ const getSentimentTrend = async (req, res) => {
         console.log(`[Analytics] Fetching data for shop ${shop_domain}`);
 
         const result = await db.query(
-            `SELECT TO_CHAR(day, 'YYYY-MM-DD') AS date,
+            `SELECT TO_CHAR(days.day, 'YYYY-MM-DD') AS date,
                     COALESCE(ROUND(avg_sentiment.average_sentiment::numeric, 2), 0) AS average_sentiment
-             FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS day
+             FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS days(day)
              LEFT JOIN (
-               SELECT DATE(created_at) AS day,
+               SELECT DATE(ch.created_at) AS day,
                       AVG(CASE
-                          WHEN sentiment = 'angry' THEN 0
-                          WHEN sentiment = 'frustrated' THEN 0.25
-                          WHEN sentiment = 'neutral' THEN 0.5
-                          WHEN sentiment = 'happy' THEN 1
+                          WHEN ch.sentiment = 'angry' THEN 0
+                          WHEN ch.sentiment = 'frustrated' THEN 0.25
+                          WHEN ch.sentiment = 'neutral' THEN 0.5
+                          WHEN ch.sentiment = 'happy' THEN 1
                           ELSE 0.5
                       END) * 100 AS average_sentiment
-               FROM conversation_history
-               WHERE shop_domain = $1 AND created_at >= CURRENT_DATE - INTERVAL '6 days'
-               GROUP BY DATE(created_at)
-             ) avg_sentiment ON avg_sentiment.day = day
-             ORDER BY day ASC`,
+               FROM conversation_history ch
+               WHERE ch.shop_domain = $1 AND ch.created_at >= CURRENT_DATE - INTERVAL '6 days'
+               GROUP BY DATE(ch.created_at)
+             ) avg_sentiment ON avg_sentiment.day = days.day
+             ORDER BY days.day ASC`,
             [shop_domain]
         );
 
