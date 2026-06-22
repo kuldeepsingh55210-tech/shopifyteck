@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | ORYQX</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #7C3AED;
+      --primary-light: #9061F9;
+      --primary-glow: rgba(124, 58, 237, 0.15);
+      --accent: #14B8A6;
+      --bg-white: #ffffff;
+      --bg-lavender: #F0EFFE;
+      --bg-darker: #080510;
+      --text-dark: #0F172A;
+      --text-gray: #475569;
+      --text-white: #ffffff;
+      --border-color: #E2E8F0;
+      --radius-btn: 50px;
+      --font-inter: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-inter);
+      color: var(--text-dark);
+      background-color: var(--bg-white);
+      line-height: 1.7;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius-btn);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+      border: 2px solid transparent;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--text-white);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      background-color: var(--primary-light);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border-color: var(--border-color);
+      color: var(--text-dark);
+    }
+
+    .btn-outline:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+      color: var(--primary);
+      background-color: var(--primary-glow);
+    }
+
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--text-gray);
+      padding: 10px 20px;
+    }
+
+    .btn-ghost:hover {
+      color: var(--primary);
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.3s;
+    }
+
+    .navbar .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.04em;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background-color: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-white);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-gray);
+      font-size: 14px;
+      font-weight: 550;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dark);
+    }
+
+    .mobile-nav-panel {
+      position: fixed;
+      top: 76px;
+      left: 0;
+      width: 100%;
+      background-color: var(--bg-white);
+      border-bottom: 1px solid var(--border-color);
+      padding: 24px;
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 999;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .mobile-nav-panel.active {
+      display: flex;
+    }
+
+    .mobile-nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mobile-nav-links a {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .mobile-nav-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .policy-hero {
+      background: linear-gradient(180deg, var(--bg-lavender) 0%, var(--bg-white) 100%);
+      padding: 150px 0 50px;
+      text-align: center;
+    }
+
+    .policy-kicker {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 18px;
+      text-transform: uppercase;
+    }
+
+    .policy-hero h1 {
+      color: var(--text-dark);
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      margin-bottom: 18px;
+    }
+
+    .policy-hero p {
+      color: var(--text-gray);
+      font-size: 18px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .policy-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 24px 110px;
+    }
+
+    .policy-meta {
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 56px;
+      background: var(--bg-white);
+      box-shadow: 0 12px 40px rgba(15, 10, 30, 0.04);
+    }
+
+    .policy-meta dl {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 10px 24px;
+      color: var(--text-gray);
+      font-size: 15px;
+    }
+
+    .policy-meta dt {
+      color: var(--text-dark);
+      font-weight: 700;
+    }
+
+    .policy-section {
+      padding: 0 0 42px;
+      margin-bottom: 42px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .policy-section:last-child {
+      margin-bottom: 0;
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .policy-section h2 {
+      color: var(--primary);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      margin-bottom: 18px;
+    }
+
+    .policy-section p {
+      color: var(--text-gray);
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .policy-section ul {
+      color: var(--text-gray);
+      display: grid;
+      gap: 10px;
+      margin: 16px 0 0 22px;
+      padding-left: 0;
+    }
+
+    .policy-section li::marker {
+      color: var(--primary);
+    }
+
+    .policy-section a {
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .policy-section a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      background-color: var(--bg-darker);
+      color: #94A3B8;
+      padding: 80px 0 40px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(3, 1fr);
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .footer-logo {
+      color: var(--text-white);
+    }
+
+    .footer-col h5 {
+      color: var(--text-white);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-col a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover {
+      color: var(--primary);
+    }
+
+    .footer-row-2 {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 30px 0;
+      margin-bottom: 30px;
+    }
+
+    .footer-row-2 h5 {
+      color: var(--text-white);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .company-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .company-links a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+
+    .company-links a:hover,
+    .company-links a.active {
+      color: var(--primary);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #64748B;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 30px;
+    }
+
+    .footer-socials {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+
+    .footer-socials a {
+      color: #64748B;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-socials a:hover {
+      color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+      .navbar {
+        height: 64px;
+      }
+
+      .mobile-nav-panel {
+        top: 64px;
+      }
+
+      .nav-links,
+      .nav-actions {
+        display: none;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .policy-hero {
+        padding: 120px 0 40px;
+      }
+
+      .policy-hero h1 {
+        font-size: 40px;
+      }
+
+      .policy-hero p {
+        font-size: 16px;
+      }
+
+      .policy-wrapper {
+        padding-bottom: 70px;
+      }
+
+      .policy-meta dl {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+
+      .policy-meta dd {
+        margin-bottom: 10px;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <a href="index.html" class="logo-container">
+        <div class="logo-icon">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M 35 40 A 15 15 0 0 1 65 40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+            <path d="M 28 38 L 72 38 L 76 78 C 76 81, 74 83, 71 83 L 29 83 C 26 83, 24 81, 24 78 Z" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+            <circle cx="40" cy="55" r="5" fill="#fff" />
+            <circle cx="60" cy="55" r="5" fill="#fff" />
+          </svg>
+        </div>
+        <span>ORYQX</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#pricing">Pricing</a></li>
+        <li><a href="index.html#compare">Compare</a></li>
+        <li><a href="index.html#resources">Resources</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="index.html#signin" class="btn btn-ghost">Sign in</a>
+        <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding: 10px 24px;">Start Free -></a>
+      </div>
+
+      <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-nav-panel" id="mobile-nav-panel">
+    <ul class="mobile-nav-links">
+      <li><a href="index.html#features" onclick="toggleMobileMenu()">Features</a></li>
+      <li><a href="index.html#pricing" onclick="toggleMobileMenu()">Pricing</a></li>
+      <li><a href="index.html#compare" onclick="toggleMobileMenu()">Compare</a></li>
+      <li><a href="index.html#resources" onclick="toggleMobileMenu()">Resources</a></li>
+    </ul>
+    <div class="mobile-nav-actions">
+      <a href="index.html#signin" class="btn btn-outline" onclick="toggleMobileMenu()">Sign in</a>
+      <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary" onclick="toggleMobileMenu()">Start Free -></a>
+    </div>
+  </div>
+
+  <main>
+    <section class="policy-hero">
+      <div class="container">
+        <p class="policy-kicker">ORYQX Inc.</p>
+        <h1>Privacy Policy</h1>
+        <p>How ORYQX - AI Customer Support for Shopify collects, uses, protects, and manages data for Shopify merchants and their customers.</p>
+      </div>
+    </section>
+
+    <div class="policy-wrapper">
+      <aside class="policy-meta" aria-label="Policy details">
+        <dl>
+          <dt>Company</dt>
+          <dd>ORYQX Inc.</dd>
+          <dt>Product</dt>
+          <dd>ORYQX - AI Customer Support for Shopify</dd>
+          <dt>Email</dt>
+          <dd><a href="mailto:support@oryqx.com">support@oryqx.com</a></dd>
+          <dt>Website</dt>
+          <dd><a href="https://oryqx.com">oryqx.com</a></dd>
+          <dt>Effective Date</dt>
+          <dd>June 22, 2026</dd>
+        </dl>
+      </aside>
+
+      <section class="policy-section">
+        <h2>1. Introduction</h2>
+        <p>ORYQX is an AI customer support platform built for Shopify merchants. It helps stores respond to customer questions, support tickets, and order-related requests using automated AI workflows.</p>
+        <p>This Privacy Policy explains what information we collect, why we collect it, how we use it, and the choices available to merchants and customers whose data may be processed through ORYQX.</p>
+      </section>
+
+      <section class="policy-section">
+        <h2>2. Information We Collect</h2>
+        <p>We collect information needed to operate ORYQX, provide support automation, and maintain secure merchant accounts.</p>
+        <ul>
+          <li>Shopify store data, including orders, customers, and products.</li>
+          <li>Support ticket content, including customer messages, conversation history, intent, sentiment, and resolution status.</li>
+          <li>Usage analytics, such as feature usage, response performance, error logs, and operational metrics.</li>
+          <li>Account information, including merchant profile details, store domain, settings, billing plan, and contact email.</li>
+        </ul>
+      </section>
+
+      <section class="policy-section">
+        <h2>3. How We Use Your Information</h2>
+        <p>We use information to deliver the ORYQX product and improve the quality, reliability, and safety of the service.</p>
+        <ul>
+          <li>To provide AI support responses and automate eligible customer support workflows.</li>
+          <li>To improve our AI models, prompts, support logic, and merchant-facing product experience.</li>
+          <li>To send product updates, operational messages, onboarding guidance, and service notices.</li>
+          <li>For billing, payments, subscription management, invoicing, fraud prevention, and account administration.</li>
+        </ul>
+      </section>
+
+      <section class="policy-section">
+        <h2>4. Data Sharing</h2>
+        <p>We never sell customer data. We share data only when needed to provide ORYQX, operate trusted service integrations, or comply with legal obligations.</p>
+        <ul>
+          <li>Shopify, to connect with merchant stores and process commerce-related support data.</li>
+          <li>Google Gemini AI, to generate and improve AI support responses.</li>
+          <li>Mailgun, to send service, support, and product communications.</li>
+          <li>Razorpay, to support billing and payment workflows.</li>
+          <li>Legal requirements only, when disclosure is required by applicable law, regulation, subpoena, court order, or valid government request.</li>
+        </ul>
+      </section>
+
+      <section class="policy-section">
+        <h2>5. Data Security</h2>
+        <p>We use administrative, technical, and organizational safeguards designed to protect information processed by ORYQX.</p>
+        <ul>
+          <li>AES-256 encryption at rest.</li>
+          <li>TLS 1.3 encryption in transit.</li>
+          <li>SOC2 compliant controls for security, availability, and operational governance.</li>
+        </ul>
+      </section>
+
+      <section class="policy-section">
+        <h2>6. Data Retention</h2>
+        <p>For active accounts, ORYQX keeps data while the merchant remains subscribed so the product can provide support automation, account history, reporting, and service continuity.</p>
+        <p>For deleted accounts, ORYQX removes associated data within 30 days, except where limited retention is required for legal, tax, security, fraud prevention, or compliance reasons.</p>
+      </section>
+
+      <section class="policy-section">
+        <h2>7. Your Rights</h2>
+        <p>Merchants may request access, deletion, or export of their data by contacting ORYQX.</p>
+        <ul>
+          <li>Access your data.</li>
+          <li>Delete your data.</li>
+          <li>Export your data.</li>
+          <li>Contact us at <a href="mailto:support@oryqx.com">support@oryqx.com</a>.</li>
+        </ul>
+      </section>
+
+      <section class="policy-section">
+        <h2>8. Cookies</h2>
+        <p>ORYQX uses essential cookies only. These cookies support authentication, security, session management, and core product functionality.</p>
+        <p>We do not use advertising cookies.</p>
+      </section>
+
+      <section class="policy-section">
+        <h2>9. Children's Privacy</h2>
+        <p>ORYQX is not intended for individuals under 18 years of age. We do not knowingly collect personal information from children under 18.</p>
+      </section>
+
+      <section class="policy-section">
+        <h2>10. Changes to Policy</h2>
+        <p>We may update this Privacy Policy from time to time. For major changes, ORYQX will provide notice by email to the account contact associated with the merchant account.</p>
+      </section>
+
+      <section class="policy-section">
+        <h2>11. Contact Us</h2>
+        <p>Questions about this Privacy Policy or ORYQX data practices can be sent to <a href="mailto:support@oryqx.com">support@oryqx.com</a>.</p>
+        <p>You can also visit us at <a href="https://oryqx.com">oryqx.com</a>.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="index.html" class="logo-container footer-logo">
+            <div class="logo-icon" style="background-color: var(--primary);">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M 35 40 A 15 15 0 0 1 65 40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+                <path d="M 28 38 L 72 38 L 76 78 C 76 81, 74 83, 71 83 L 29 83 C 26 83, 24 81, 24 78 Z" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+                <circle cx="40" cy="55" r="5" fill="#fff" />
+                <circle cx="60" cy="55" r="5" fill="#fff" />
+              </svg>
+            </div>
+            <span>ORYQX</span>
+          </a>
+          <p style="font-size: 14px; line-height: 1.5; color: #64748B; margin-top: 10px;">
+            AI customer support platform built specifically to scale Shopify storefronts.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Product</h5>
+          <ul>
+            <li><a href="index.html#features">Features</a></li>
+            <li><a href="index.html#pricing">Pricing</a></li>
+            <li><a href="index.html#integrations">Integrations</a></li>
+            <li><a href="index.html#changelog">Changelog</a></li>
+            <li><a href="index.html#status">System Status</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Solutions</h5>
+          <ul>
+            <li><a href="index.html#shopify">Shopify Brands</a></li>
+            <li><a href="index.html#enterprise">Enterprise Customers</a></li>
+            <li><a href="index.html#startups">Growth Startups</a></li>
+            <li><a href="index.html#agencies">Partner Agencies</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="index.html#blog">Blog Articles</a></li>
+            <li><a href="index.html#docs">Documentation</a></li>
+            <li><a href="index.html#api">API Reference</a></li>
+            <li><a href="index.html#community">Developer Community</a></li>
+            <li><a href="index.html#help">Help Center</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-row-2">
+        <h5>Company</h5>
+        <ul class="company-links">
+          <li><a href="index.html#about">About Us</a></li>
+          <li><a href="index.html#careers">Careers</a></li>
+          <li><a href="index.html#press">Press Kit</a></li>
+          <li><a href="privacy.html" class="active">Privacy Policy</a></li>
+          <li><a href="index.html#terms">Terms of Service</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-bottom">
+        <span>&copy; 2026 ORYQX Inc. All rights reserved. Built for Shopify.</span>
+        <ul class="footer-socials">
+          <li><a href="index.html#twitter">Twitter</a></li>
+          <li><a href="index.html#linkedin">LinkedIn</a></li>
+          <li><a href="index.html#github">GitHub</a></li>
+          <li><a href="index.html#youtube">YouTube</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+    const mobileNavPanel = document.getElementById('mobile-nav-panel');
+
+    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+
+    function toggleMobileMenu() {
+      mobileNavPanel.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>
