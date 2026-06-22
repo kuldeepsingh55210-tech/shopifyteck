@@ -86,7 +86,7 @@ router.post('/create', verifySessionToken, async (req, res) => {
             price: price,
             return_url: `${process.env.APP_URL}/api/billing/confirm?shop=${shop_domain}&plan=${plan}&cycle=${billing_cycle}`,
             trial_days: 14,
-            test: true
+            test: false
           }
         })
       }
