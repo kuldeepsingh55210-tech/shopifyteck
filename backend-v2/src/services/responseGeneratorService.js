@@ -37,6 +37,17 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
             return generateFallbackResponse(orderData, customerMessage, intent);
         }
 
+        // EARLY RETURN FOR SIMPLE INTENTS
+        if (intent === 'greeting') {
+            return "Hi! Welcome to ORYQX Support. How can I help you today? 😊";
+        }
+        if (intent === 'unknown' || intent === 'random') {
+            return "I'm not sure I understood that. Could you please describe your issue? For example: order status, returns, or shipping.";
+        }
+        if (intent === 'exchange_request') {
+            return "We'd be happy to help you exchange your item! Please share your order number and reason for exchange.";
+        }
+
         console.log(`[Response] Calling Gemini API with retry logic...`);
         console.log(`[Response] Queue size: ${rateLimiter.getQueueSize()}, Pending: ${rateLimiter.getPendingCount()}`);
 
