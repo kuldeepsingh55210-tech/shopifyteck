@@ -86,7 +86,7 @@
       gap: 8px;
     }
     .oryqx-header-text {
-      color: #white;
+      color: #ffffff;
       font-weight: 700;
       font-size: 14px;
       letter-spacing: -0.02em;
@@ -125,7 +125,7 @@
       transition: color 0.2s ease, background 0.2s ease;
     }
     .oryqx-close-btn:hover {
-      color: #white;
+      color: #ffffff;
       background: rgba(255, 255, 255, 0.05);
     }
     .oryqx-chat-body {
@@ -196,7 +196,7 @@
       flex: 1;
       background: #0A0B0F;
       border: 1px solid #2A2D3E;
-      color: #white;
+      color: #333333;
       font-size: 11px;
       padding: 6px 10px;
       border-radius: 6px;
@@ -218,7 +218,7 @@
       flex-grow: 1;
       background: #0A0B0F;
       border: 1px solid #2A2D3E;
-      color: #white;
+      color: #333333;
       font-size: 13px;
       padding: 8px 14px;
       border-radius: 20px;
