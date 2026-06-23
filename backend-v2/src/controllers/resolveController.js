@@ -154,12 +154,34 @@ const resolveOrder = async (req, res) => {
         lowerCustomerMessage.includes('exchange') ||
         detectedIntent === 'general_inquiry';
 
+    // Helper function to check if intent requires order lookup
+    const doesIntentRequireOrder = (intent) => {
+        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'cancel_order', 'refund_request', 'exchange_request'];
+        return orderRequiredIntents.includes(intent);
+    };
+
+    const hasExplicitOrderNumber = order_number !== 'NONE' && order_number.trim().length > 0;
+    const intentRequiresOrder = doesIntentRequireOrder(detectedIntent);
+
     let orderData = null;
+    let orderLookupSkipped = false;
+
     if (isPolicyQuestion) {
         console.log('[Resolve] Policy question detected, skipping order lookup');
+        orderLookupSkipped = true;
+    } else if (!intentRequiresOrder) {
+        console.log(`[Resolve] Intent "${detectedIntent}" does not require order lookup, using Knowledge Base instead`);
+        orderLookupSkipped = true;
+    } else if (!hasExplicitOrderNumber) {
+        console.log(`[Resolve] No explicit order number provided for order-required intent "${detectedIntent}", escalating`);
+        // For order-required intents, we need an order number
+        const ticket = await saveTicket({ shop_id, customer_email, order_number, raw_message: customer_message, detected_intent: intentResult.intent, intent_confidence: intentResult.confidence, resolution_status: 'escalated' });
+        await logAction(ticket.id, 'ESCALATED', { reason: 'order_number_required' });
+        const csat_token = Buffer.from(String(ticket.id) + shop.shop_domain).toString('base64');
+        return res.json({ success: true, resolution: 'escalated', response: 'Please provide your order number so we can help you better.', intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_number_required', language: 'english', csat_token, ticket_id: ticket.id });
     } else {
-        // Step 3: Get order data
-        console.log(`[Resolve] Step 3: Fetching order data...`);
+        // Step 3: Get order data - ONLY for order-required intents with explicit order number
+        console.log(`[Resolve] Step 3: Fetching order data for intent "${detectedIntent}" with order number "${order_number}"...`);
         const orderDataResult = await getOrderData(shop.shop_domain, shop.access_token, order_number, customer_email);
         orderData = orderDataResult.found ? orderDataResult : null;
 
@@ -175,9 +197,10 @@ const resolveOrder = async (req, res) => {
     let escalationData = null;
     let eligibility = null;
 
-    if (isPolicyQuestion) {
-        console.log('[Resolve] Policy question detected, skipping reasoning and fraud checks');
-        decision = { action: 'auto_resolve', confidence: 0.9 };
+    // For order lookup skipped cases (policy questions or general inquiries), auto-resolve with KB
+    if (isPolicyQuestion || orderLookupSkipped) {
+        console.log('[Resolve] Skipping reasoning (isPolicyQuestion or general inquiry), auto-resolving with Knowledge Base');
+        decision = { action: 'auto_resolve', confidence: 0.85 };
         escalationData = { should_escalate: false, probability: 0 };
         eligibility = { eligible: true, fraud_flag: false };
     } else {
@@ -195,12 +218,12 @@ const resolveOrder = async (req, res) => {
     }
 
     // Add custom memory rule forcing angry sentiment to escalation
-    if (!isPolicyQuestion && customerMemory.sentiment_score < 0.2) {
+    if (!(isPolicyQuestion || orderLookupSkipped) && customerMemory.sentiment_score < 0.2) {
         decision.action = 'escalate';
         decision.reasoning = 'Low historical sentiment score forced escalation';
     }
 
-    if (!isPolicyQuestion && intentResult.intent === 'refund_request' && customerMemory.refund_request_count >= settings.fraud_refund_limit && settings.fraud_detection) {
+    if (!(isPolicyQuestion || orderLookupSkipped) && intentResult.intent === 'refund_request' && customerMemory.refund_request_count >= settings.fraud_refund_limit && settings.fraud_detection) {
         decision.action = 'flag_fraud';
         decision.reasoning = `Refund request count exceeded fraud threshold of ${settings.fraud_refund_limit}.`;
     }
@@ -217,18 +240,18 @@ const resolveOrder = async (req, res) => {
         }
     }
 
-    if (!isPolicyQuestion && !settings.auto_resolve && decision.action === 'auto_resolve') {
+    if (!(isPolicyQuestion || orderLookupSkipped) && !settings.auto_resolve && decision.action === 'auto_resolve') {
         decision.action = 'escalate';
         decision.reasoning = 'Auto-resolve disabled by merchant, forced escalation.';
     }
 
-    if (!isPolicyQuestion && decision.action === 'auto_resolve' && typeof decision.confidence === 'number' && decision.confidence < settings.min_confidence) {
+    if (!(isPolicyQuestion || orderLookupSkipped) && decision.action === 'auto_resolve' && typeof decision.confidence === 'number' && decision.confidence < settings.min_confidence) {
         decision.action = 'escalate';
         decision.reasoning = `Auto-resolve confidence ${decision.confidence}% below merchant minimum ${settings.min_confidence}%.`;
     }
 
     console.log(`[Fix] Escalation probability: ${escalationData.probability} vs threshold: ${settings.escalation_threshold}`);
-    if (!isPolicyQuestion && escalationData.probability >= settings.escalation_threshold && decision.action !== 'flag_fraud') {
+    if (!(isPolicyQuestion || orderLookupSkipped) && escalationData.probability >= settings.escalation_threshold && decision.action !== 'flag_fraud') {
         decision.action = 'escalate';
         decision.reasoning = `Escalation threshold (${settings.escalation_threshold}) exceeded (${escalationData.probability}).`;
     }
@@ -272,8 +295,8 @@ const resolveOrder = async (req, res) => {
         await actionService.escalateToHuman(shop.shop_domain, null, customer_email, 'Fraud flag triggered', 'high');
         await actionService.logAction(shop.shop_domain, customer_email, null, 'fraud_flag', { reason: 'Triggered by high refund count' }, true);
     } else if (decision.action === 'auto_resolve') {
-        if (isPolicyQuestion) {
-            console.log('[Resolve] Policy question - skipping action engine');
+        if (isPolicyQuestion || orderLookupSkipped) {
+            console.log('[Resolve] General inquiry or policy question - skipping action engine');
             finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain);
         } else {
             finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain);
