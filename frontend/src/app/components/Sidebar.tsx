@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Ticket, BarChart3, Store, Settings, CreditCard, HelpCircle, LogOut, Plus, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Ticket, BarChart3, Settings, CreditCard, HelpCircle, LogOut, Plus, Sun, Moon } from 'lucide-react';
 
 interface SidebarProps {
   activePage: 'dashboard' | 'tickets' | 'analytics' | 'stores' | 'settings' | 'onboarding' | 'pricing';
@@ -15,7 +15,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, dar
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tickets', label: 'Tickets', icon: Ticket },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'stores', label: 'Stores', icon: Store },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'pricing', label: 'Pricing', icon: CreditCard },
   ] as const;
@@ -42,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, dar
             </div>
             <div className="flex flex-col">
               <span className="font-display font-bold text-lg text-white">ORYQX</span>
-              <span className="font-mono text-[10px] text-[var(--text-muted)]">Enterprise Dashboard</span>
+              <span className="font-mono text-[10px] text-[var(--text-muted)]">My Store</span>
             </div>
           </div>
           <button onClick={() => setDarkMode(!darkMode)} className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-white transition-all duration-200 cursor-pointer">

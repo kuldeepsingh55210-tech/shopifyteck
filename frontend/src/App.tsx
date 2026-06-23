@@ -145,8 +145,6 @@ function App() {
   const [kbMessage, setKbMessage] = useState('');
   const [kbError, setKbError] = useState('');
 
-  const addStoreLoading = false;
-
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -291,16 +289,6 @@ function App() {
     } finally {
       setSettingsSaving(false);
     }
-  };
-
-  const handleAddStoreSubmit = async (domain: string) => {
-    if (!domain.trim()) return;
-    if (!domain.match(/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/)) {
-      alert('Invalid shop domain. Must be a valid myshopify.com domain.');
-      return;
-    }
-    const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '';
-    window.open(`https://${domain}/admin/oauth/authorize?client_id=${apiKey}&scope=read_orders,read_fulfillments,write_orders,write_price_rules,read_price_rules,write_discounts,read_discounts&redirect_uri=${window.location.origin}/shopify/callback`, '_top');
   };
 
   const handleCsatSubmit = async (rating: number) => {
@@ -707,9 +695,8 @@ function App() {
             <Stores
               currentShopDomain={shopDomain}
               currentShopId={shopId}
+              totalTicketsThisMonth={stats?.total_tickets ?? tickets.length}
               onDisconnectStore={handleLogout}
-              onAddStoreSubmit={handleAddStoreSubmit}
-              addStoreLoading={addStoreLoading}
             />
           )}
           {page === 'settings' && (

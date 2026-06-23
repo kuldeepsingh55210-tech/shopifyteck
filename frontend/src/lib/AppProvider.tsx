@@ -42,7 +42,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }
 
   if (!isEmbedded) {
-    // Show premium Cyber-Enterprise Neon error warning page when loaded standalone
+    // Show premium merchant warning page when loaded standalone
     const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY || '';
     const cleanShop = shop.trim().replace(/^https?:\/\//, '');
     const installUrl = cleanShop 

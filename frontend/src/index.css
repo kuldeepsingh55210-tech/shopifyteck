@@ -5,7 +5,7 @@
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Custom Neon Enterprise Color Mapping */
+  /* Custom Neon Merchant Color Mapping */
   --color-neon-bg: var(--bg);
   --color-neon-surface: var(--surface);
   --color-neon-card: var(--card);

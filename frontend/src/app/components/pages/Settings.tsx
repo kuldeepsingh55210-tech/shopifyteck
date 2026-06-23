@@ -184,8 +184,14 @@ export const Settings: React.FC<SettingsProps> = ({
                 <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono mb-4">Channel Credentials</h3>
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-[var(--surface-low)] border border-[var(--border)]">
-                    <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider block">STORE DOMAIN</span>
-                    <span className="text-sm font-bold text-white mt-1 block">{shopDomain}</span>
+                    <label className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider block mb-2">STORE DOMAIN</label>
+                    <input
+                      type="text"
+                      value={shopDomain}
+                      readOnly
+                      aria-readonly="true"
+                      className="w-full px-0 py-0 bg-transparent border-0 text-sm font-bold text-white focus:outline-none cursor-not-allowed"
+                    />
                   </div>
                   <div className="p-4 rounded-xl bg-[var(--surface-low)] border border-[var(--border)] flex justify-between items-center">
                     <div>

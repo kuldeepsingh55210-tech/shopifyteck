@@ -311,36 +311,8 @@ export const Analytics: React.FC<AnalyticsProps> = ({
         </div>
       </GlassCard>
 
-      {/* Store Performance and Sentiment Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Store Performance */}
-        <GlassCard className="p-6">
-          <h3 className="text-base font-bold text-white font-display mb-4">Channel & Store Performance</h3>
-          <div className="space-y-4">
-            {[
-              { name: 'Luna-Home Global', volume: '482 tickets', success: '94.2%', speed: '1.1m avg', status: 'optimal' },
-              { name: 'Midnight Seoul', volume: '292 tickets', success: '91.8%', speed: '1.4m avg', status: 'optimal' },
-              { name: 'Aero Wear', volume: '110 tickets', success: '86.4%', speed: '2.5m avg', status: 'warning' },
-            ].map((store, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[var(--surface-low)] border border-[var(--border)]/50">
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-white">{store.name}</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">{store.volume} • Response speed: {store.speed}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col text-right">
-                    <span className="text-xs font-mono font-bold text-[var(--tertiary)]">{store.success} Auto-Res</span>
-                    <span className="text-[8px] text-[var(--text-muted)] font-mono uppercase tracking-wider mt-0.5">success rate</span>
-                  </div>
-                  <span className={`w-2.5 h-2.5 rounded-full ${store.status === 'optimal' ? 'bg-[var(--tertiary)] led-pulse' : 'bg-[var(--warning)] led-pulse'}`} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-
-        {/* Sentiment Analysis Trend */}
+      {/* Sentiment Analysis Trend */}
+      <div>
         <GlassCard className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-base font-bold text-white font-display">Sentiment Trend</h3>
@@ -375,7 +347,6 @@ export const Analytics: React.FC<AnalyticsProps> = ({
             </ResponsiveContainer>
           </div>
         </GlassCard>
-
       </div>
     </div>
   );

@@ -290,7 +290,7 @@ export const Tickets: React.FC<TicketsProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block">SHOPIFY STORE</span>
-                  <span className="text-white font-bold mt-1 block">Luna-Home Global</span>
+                  <span className="text-white font-bold mt-1 block">Current Store</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block">LIFETIME VALUE</span>

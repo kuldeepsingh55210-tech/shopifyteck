@@ -51,8 +51,8 @@ const COLORS = ['#a2e7ff', '#c4c0ff', '#00e29e'];
 
 const systemEvents = [
   { id: 1, type: 'success', title: 'Auto-Resolution Triggered', desc: 'Ticket #8821 closed successfully.', time: '2M AGO' },
-  { id: 2, type: 'info', title: 'New Shopify Integration', desc: "\'Midnight Seoul\' store connected.", time: '45M AGO' },
-  { id: 3, type: 'warning', title: 'Spike in Shipping Queries', desc: 'Anomaly detected in North America.', time: '2H AGO' }
+  { id: 2, type: 'info', title: 'Widget Sync Confirmed', desc: 'Current store widget connection is healthy.', time: '45M AGO' },
+  { id: 3, type: 'warning', title: 'Spike in Shipping Queries', desc: 'Anomaly detected in your ticket queue.', time: '2H AGO' }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -66,7 +66,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const automationRate = stats?.automation_rate ?? 84;
   const escalatedCount = stats?.escalated ?? 42;
   const avgResponse = '1.2m';
-  const activeStores = 15;
 
   // Render Issue intent category tag/badge
   const renderIssueTag = (intent: string) => {
@@ -89,8 +88,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* 5 Stats Cards in a Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      {/* Merchant Store Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard 
           label="TOTAL TICKETS" 
           value={totalTickets} 
@@ -118,12 +117,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           value={avgResponse} 
           icon="🧠" 
           color="text-[var(--primary)]"
-        />
-        <StatCard 
-          label="ACTIVE STORES" 
-          value={activeStores} 
-          icon="🏪" 
-          color="text-[var(--secondary)]"
         />
       </div>
 
