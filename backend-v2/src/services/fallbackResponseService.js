@@ -10,6 +10,10 @@ const generateFallbackResponse = (orderData, customerMessage, intent = 'order_st
   }
 
   // Handle intents based on the user specification
+  if (intent === 'greeting') {
+    return "Hi! Welcome to ORYQX Support. How can I help you today? 😊";
+  }
+
   if (intent === 'order_status' || intent === 'shipping_status') {
     return `Your order #${orderId} is currently ${status}. Expected delivery: soon.`;
   }
@@ -30,8 +34,16 @@ const generateFallbackResponse = (orderData, customerMessage, intent = 'order_st
     }
   }
 
+  if (intent === 'exchange_request') {
+    return `We'd be happy to help you exchange your item! For orders placed within 30 days, we offer free exchanges. Please provide more details about the issue (size, defect, etc.) and we'll process it right away.`;
+  }
+
   if (intent === 'angry_customer') {
     return `We sincerely apologize for the inconvenience. A senior support agent will contact you within 2 hours.`;
+  }
+
+  if (intent === 'unknown' || intent === 'random') {
+    return "I'm not sure I understood that. Could you please describe your issue? For example: order status, returns, shipping, or refunds.";
   }
 
   if (intent === 'human_handoff') {

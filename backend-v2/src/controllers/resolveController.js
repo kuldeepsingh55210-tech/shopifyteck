@@ -147,12 +147,15 @@ const resolveOrder = async (req, res) => {
 
     const detectedIntent = intentResult.intent;
     const lowerCustomerMessage = customerMessage.toLowerCase();
+    
+    // Intents that don't need order lookup and should auto-resolve
+    const noOrderNeededIntents = ['greeting', 'unknown', 'general_inquiry', 'product_query'];
+    
     const isPolicyQuestion =
         lowerCustomerMessage.includes('policy') ||
         lowerCustomerMessage.includes('shipping time') ||
         lowerCustomerMessage.includes('delivery time') ||
-        lowerCustomerMessage.includes('exchange') ||
-        detectedIntent === 'general_inquiry';
+        noOrderNeededIntents.includes(detectedIntent);
 
     // Helper function to check if intent requires order lookup
     const doesIntentRequireOrder = (intent) => {
@@ -197,8 +200,14 @@ const resolveOrder = async (req, res) => {
     let escalationData = null;
     let eligibility = null;
 
-    // For order lookup skipped cases (policy questions or general inquiries), auto-resolve with KB
-    if (isPolicyQuestion || orderLookupSkipped) {
+    // SPECIAL HANDLING: Force escalation for angry customers
+    if (detectedIntent === 'angry_customer' && settings.escalate_angry) {
+        console.log('[Resolve] Angry customer detected - forcing escalation');
+        decision = { action: 'escalate', confidence: 0.95, reasoning: 'Angry customer - escalated to senior support' };
+        escalationData = { should_escalate: true, probability: 100 };
+        eligibility = { eligible: false, fraud_flag: false };
+    } // For order lookup skipped cases (policy questions or general inquiries), auto-resolve with KB
+    else if (isPolicyQuestion || orderLookupSkipped) {
         console.log('[Resolve] Skipping reasoning (isPolicyQuestion or general inquiry), auto-resolving with Knowledge Base');
         decision = { action: 'auto_resolve', confidence: 0.85 };
         escalationData = { should_escalate: false, probability: 0 };

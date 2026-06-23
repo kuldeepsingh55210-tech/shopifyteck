@@ -25,6 +25,20 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
         // Quick local intent detection for common patterns - highly accurate and fast
         const message = customerMessage.toLowerCase();
 
+        // GREETING DETECTION
+        if (message.match(/^(hi|hello|hey|greetings|namaste|hola|salaam|howdy|hii|hiiii|heyy|sup)\b/) ||
+            message.match(/\b(hi there|hello there|hey there)\b/)) {
+            console.log('[Intent] Detected as greeting (local pattern match)');
+            return { ...defaultResult, intent: 'greeting', confidence: 0.95, sentiment: 'positive', urgency: 'low' };
+        }
+
+        // ANGRY/FRUSTRATED DETECTION
+        const angryPatterns = /\b(pathetic|refund now|terrible|worst|horrible|furious|disgusting|useless|angry|hate|damn|hell|garbage|trash|bs|unfair)\b/i;
+        if (angryPatterns.test(message)) {
+            console.log('[Intent] Detected as angry_customer (local pattern match)');
+            return { ...defaultResult, intent: 'angry_customer', confidence: 0.9, sentiment: 'angry', urgency: 'high', escalation_hint: true };
+        }
+
         if ((message.includes('refund') && message.includes('policy')) ||
             message.includes('policy') || message.includes('niyam') || message.includes('rules')) {
             console.log('[Intent] Detected as general_inquiry (policy question local pattern match)');
@@ -44,14 +58,21 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
         }
 
-        if (message.includes('refund') || message.includes('money back') || message.includes('return') ||
-            message.includes('reimburs') || message.includes('compensation')) {
+        // EXCHANGE REQUEST - product return/exchange (NOT money refund)
+        if (message.match(/\b(exchange|replace|send.*back|wrong.*item|defective|damage|damaged|broken)\b/i) &&
+            !message.includes('refund') && !message.includes('money back')) {
+            console.log('[Intent] Detected as exchange_request (local pattern match)');
+            return { ...defaultResult, intent: 'exchange_request', confidence: 0.9, urgency: 'medium' };
+        }
+
+        // REFUND REQUEST - money back
+        if (message.includes('refund') || message.includes('money back') || message.includes('reimburse') ||
+            message.includes('compensation') || message.includes('return money')) {
             console.log('[Intent] Detected as refund_request (local pattern match)');
             return { ...defaultResult, intent: 'refund_request', confidence: 0.9, sentiment: 'negative', urgency: 'high', escalation_hint: true };
         }
 
-        if (message.includes('shipping') || message.includes('exchange') ||
-            message.includes('size') || message.includes('fit') || message.includes('rate')) {
+        if (message.includes('shipping') || message.includes('size') || message.includes('fit') || message.includes('rate')) {
             console.log('[Intent] Detected as policy (local pattern match)');
             return { ...defaultResult, intent: 'general_inquiry', confidence: 0.85 };
         }
