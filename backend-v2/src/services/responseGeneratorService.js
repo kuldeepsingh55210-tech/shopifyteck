@@ -1,6 +1,7 @@
 const axios = require('axios');
 const rateLimiter = require('./rateLimiterService');
 const { generateFallbackResponse, getCannedResponse } = require('./fallbackResponseService');
+const { generateGroqResponse } = require('./groqService');
 
 const extractAnswerFromRagContext = (ragContext) => {
     if (!ragContext || typeof ragContext !== 'string') return null;
@@ -47,6 +48,20 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
         if (intent === 'exchange_request') {
             return "We'd be happy to help you exchange your item! Please share your order number and reason for exchange.";
         }
+
+        // Try Groq first (faster, no rate limits)
+        console.log('[Response] Trying Groq API first...');
+        const groqResponse = await generateGroqResponse(
+            customerMessage, 
+            intent, 
+            ragContext, 
+            shopDomain
+        );
+        if (groqResponse) {
+            console.log('[Response] Groq API success!');
+            return groqResponse;
+        }
+        console.log('[Response] Groq failed, falling back to Gemini...');
 
         console.log(`[Response] Calling Gemini API with retry logic...`);
         console.log(`[Response] Queue size: ${rateLimiter.getQueueSize()}, Pending: ${rateLimiter.getPendingCount()}`);

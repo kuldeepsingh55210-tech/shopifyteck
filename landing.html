@@ -1,0 +1,2749 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ORYQX — AI Customer Support Platform for Shopify Growth</title>
+  
+  <!-- Inter Font from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* --------------------------------------------------------------------------
+       1. DESIGN SYSTEM VARIABLES & BASE
+       -------------------------------------------------------------------------- */
+    :root {
+      --primary: #7C3AED;
+      --primary-light: #9061F9;
+      --primary-glow: rgba(124, 58, 237, 0.15);
+      --accent: #14B8A6;
+      --accent-light: #2DD4BF;
+      --accent-glow: rgba(20, 184, 166, 0.15);
+      --bg-white: #ffffff;
+      --bg-lavender: #F0EFFE;
+      --bg-dark: #0F0A1E;
+      --bg-darker: #080510;
+      --text-dark: #0F172A;
+      --text-gray: #475569;
+      --text-light: #94A3B8;
+      --text-white: #ffffff;
+      --border-color: #E2E8F0;
+      --border-color-dark: rgba(255, 255, 255, 0.08);
+      --radius-card: 20px;
+      --radius-btn: 50px;
+      --shadow-soft: 0 12px 40px rgba(15, 10, 30, 0.04);
+      --shadow-hover: 0 20px 48px rgba(124, 58, 237, 0.08);
+      --font-inter: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-inter);
+      color: var(--text-dark);
+      background-color: var(--bg-white);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Section Spacing */
+    section {
+      padding: 100px 0;
+    }
+    .section-lavender {
+      background-color: var(--bg-lavender);
+    }
+    .section-dark {
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    h2 {
+      font-size: 48px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .section-subtitle {
+      font-size: 18px;
+      color: var(--text-gray);
+      text-align: center;
+      max-width: 650px;
+      margin: 0 auto 60px auto;
+      font-weight: 400;
+    }
+    .section-dark .section-subtitle {
+      color: #94A3B8;
+    }
+
+    /* Text Gradients */
+    .text-gradient {
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius-btn);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+      border: 2px solid transparent;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--text-white);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      background-color: var(--primary-light);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    }
+    .btn-outline {
+      background-color: transparent;
+      border-color: var(--border-color);
+      color: var(--text-dark);
+    }
+    .btn-outline:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+      color: var(--primary);
+      background-color: var(--primary-glow);
+    }
+    .btn-outline-white {
+      background-color: transparent;
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--text-white);
+    }
+    .btn-outline-white:hover {
+      transform: translateY(-2px);
+      border-color: var(--text-white);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--text-gray);
+      padding: 10px 20px;
+    }
+    .btn-ghost:hover {
+      color: var(--primary);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-white);
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-soft);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+      border-color: rgba(124, 58, 237, 0.2);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .badge-purple {
+      background-color: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+    }
+    .badge-teal {
+      background-color: var(--accent-glow);
+      color: var(--accent);
+      border: 1px solid rgba(20, 184, 166, 0.2);
+    }
+
+    /* Animations Trigger */
+    .fade-in-section {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .fade-in-section.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* --------------------------------------------------------------------------
+       2. STICKY NAVBAR
+       -------------------------------------------------------------------------- */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.3s;
+    }
+    .navbar .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.04em;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background-color: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-white);
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-gray);
+      font-size: 14px;
+      font-weight: 550;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mobile-menu-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dark);
+    }
+
+    /* Mobile Nav Panel */
+    .mobile-nav-panel {
+      position: fixed;
+      top: 76px;
+      left: 0;
+      width: 100%;
+      background-color: var(--bg-white);
+      border-bottom: 1px solid var(--border-color);
+      padding: 24px;
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 999;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+    .mobile-nav-panel.active {
+      display: flex;
+    }
+    .mobile-nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .mobile-nav-links a {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mobile-nav-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* --------------------------------------------------------------------------
+       3. HERO SECTION
+       -------------------------------------------------------------------------- */
+    .hero {
+      padding-top: 160px;
+      padding-bottom: 100px;
+      background: radial-gradient(circle at 80% 20%, rgba(240, 239, 254, 0.6) 0%, rgba(255, 255, 255, 1) 70%);
+      text-align: center;
+    }
+    .hero-badge {
+      margin-bottom: 24px;
+    }
+    .hero-h1 {
+      font-size: 72px;
+      font-weight: 900;
+      color: var(--text-dark);
+      line-height: 1.05;
+      max-width: 900px;
+      margin: 0 auto 20px auto;
+    }
+    .hero-subtext {
+      font-size: 20px;
+      color: var(--text-gray);
+      max-width: 700px;
+      margin: 0 auto 36px auto;
+      line-height: 1.5;
+    }
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .hero-trustline {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 60px;
+    }
+    .hero-trustline span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Hero Demo Card Layout */
+    .hero-demo-card {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      text-align: left;
+      overflow: hidden;
+      max-width: 1000px;
+      margin: 0 auto;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Left Panel: Live Tickets */
+    .demo-left-panel {
+      padding: 32px;
+      position: relative;
+      background-color: var(--bg-white);
+      border-right: 1px solid var(--border-color);
+    }
+    .panel-floating-badge-top {
+      position: absolute;
+      top: -12px;
+      left: 32px;
+      background-color: var(--accent);
+      color: var(--text-white);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 50px;
+      letter-spacing: 0.05em;
+    }
+    .panel-floating-badge-bottom {
+      position: absolute;
+      bottom: -12px;
+      left: 32px;
+      background-color: var(--primary);
+      color: var(--text-white);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 50px;
+      letter-spacing: 0.05em;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .panel-header h4 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .pulse-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #E6FBF7;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      animation: pulse-animation 1.5s infinite;
+    }
+    @keyframes pulse-animation {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(20, 184, 166, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(20, 184, 166, 0); }
+    }
+    
+    .ticket-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ticket-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background-color: var(--bg-lavender);
+      border-radius: 12px;
+      border: 1px solid rgba(124, 58, 237, 0.05);
+    }
+    .ticket-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .ticket-user {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .ticket-desc {
+      font-size: 12px;
+      color: var(--text-gray);
+    }
+    .ticket-status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .status-auto {
+      background-color: var(--accent-glow);
+      color: var(--accent);
+      border: 1px solid rgba(20, 184, 166, 0.1);
+    }
+    .status-assigned {
+      background-color: #FFFDF0;
+      color: #D9A700;
+      border: 1px solid rgba(217, 167, 0, 0.1);
+    }
+
+    /* Right Panel: Chat Demo */
+    .demo-right-panel {
+      padding: 32px;
+      background-color: #FAF9FF;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .panel-floating-badge-right {
+      position: absolute;
+      top: 50%;
+      right: -16px;
+      transform: translateY(-50%) rotate(90deg);
+      background-color: var(--primary);
+      color: var(--text-white);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 50px;
+      letter-spacing: 0.05em;
+    }
+    .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+    }
+    .agent-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-white);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .agent-meta {
+      display: flex;
+      flex-direction: column;
+    }
+    .agent-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .agent-status {
+      font-size: 11px;
+      color: var(--text-gray);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .agent-status-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent);
+      border-radius: 50%;
+    }
+    
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .chat-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .bubble-user {
+      align-self: flex-end;
+      background-color: #E2E8F0;
+      color: var(--text-dark);
+      border-bottom-right-radius: 2px;
+    }
+    .bubble-ai {
+      align-self: flex-start;
+      background-color: var(--primary);
+      color: var(--text-white);
+      border-bottom-left-radius: 2px;
+    }
+
+    /* --------------------------------------------------------------------------
+       4. LOGO STRIP
+       -------------------------------------------------------------------------- */
+    .logo-strip {
+      padding: 40px 0;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      background-color: #FCFCFD;
+      text-align: center;
+    }
+    .logo-strip-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-light);
+      letter-spacing: 0.12em;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+    .logo-scroller-wrapper {
+      overflow: hidden;
+      width: 100%;
+      mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+      margin-bottom: 24px;
+    }
+    .logo-scroller {
+      display: flex;
+      gap: 60px;
+      width: max-content;
+      animation: scroll 20s linear infinite;
+    }
+    .logo-scroller span {
+      font-size: 20px;
+      font-weight: 700;
+      color: #94A3B8;
+      letter-spacing: -0.02em;
+    }
+    @keyframes scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .g2-rating-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #F8FAFC;
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-gray);
+    }
+    .stars {
+      color: #FBBF24;
+    }
+
+    /* --------------------------------------------------------------------------
+       5. PROBLEM SECTION
+       -------------------------------------------------------------------------- */
+    .problem {
+      background-color: var(--bg-white);
+    }
+    .problem-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    .problem-card {
+      padding: 36px;
+      text-align: left;
+    }
+    .problem-icon {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+    .problem-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-dark);
+    }
+    .problem-card p {
+      font-size: 14px;
+      color: var(--text-gray);
+      line-height: 1.5;
+    }
+    .problem-link-wrapper {
+      text-align: center;
+    }
+    .problem-link {
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 16px;
+      transition: gap 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .problem-link:hover {
+      gap: 8px;
+    }
+
+    /* --------------------------------------------------------------------------
+       6. FEATURES GRID (BENTO)
+       -------------------------------------------------------------------------- */
+    .features-grid {
+      background-color: var(--bg-white);
+    }
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 24px;
+    }
+    
+    /* Big Card */
+    .bento-big-card {
+      grid-row: span 2;
+      background: linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%);
+      color: var(--text-white);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: none;
+    }
+    .bento-big-card h3 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .bento-big-card p {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 15px;
+      margin-bottom: 30px;
+      max-width: 450px;
+    }
+    .bento-chat-demo {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bento-chat-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .bento-chat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 700;
+    }
+    .bento-chat-bubble {
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      width: fit-content;
+      max-width: 90%;
+    }
+    .bento-bubble-cust {
+      background-color: rgba(255,255,255,0.15);
+      color: var(--text-white);
+    }
+    .bento-bubble-ai {
+      background-color: var(--accent);
+      color: var(--text-dark);
+      font-weight: 600;
+    }
+    
+    /* Small Cards */
+    .bento-small-card {
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .bento-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      background-color: var(--primary-glow);
+      color: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bento-icon-wrapper svg {
+      width: 24px;
+      height: 24px;
+    }
+    .bento-small-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .bento-small-card p {
+      font-size: 13px;
+      color: var(--text-gray);
+      line-height: 1.5;
+    }
+
+    /* Orbit graphic */
+    .orbit-graphic {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 10px auto;
+    }
+    .orbit-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      background-color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--primary);
+    }
+    .orbit-center svg {
+      width: 16px;
+      height: 16px;
+      fill: #fff;
+    }
+    .orbit-ring {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: 1px dashed var(--border-color);
+      border-radius: 50%;
+      animation: rotate 8s linear infinite;
+    }
+    .orbit-satellite {
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    @keyframes rotate {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Mini Bar Chart */
+    .bar-chart-graphic {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 10px;
+      height: 90px;
+      margin-top: 10px;
+    }
+    .chart-bar {
+      width: 24px;
+      background-color: var(--accent);
+      border-radius: 4px 4px 0 0;
+      opacity: 0.3;
+      transition: height 1s, opacity 1s;
+      height: 20px;
+    }
+    .chart-bar.active {
+      opacity: 1;
+    }
+    .chart-bar:nth-child(1) { height: 35px; }
+    .chart-bar:nth-child(2) { height: 50px; }
+    .chart-bar:nth-child(3) { height: 75px; }
+    .chart-bar:nth-child(4) { height: 90px; }
+
+    /* Fraud Check rows */
+    .fraud-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .fraud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background-color: #F8FAFC;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+    }
+    .fraud-order {
+      font-weight: 700;
+    }
+    .fraud-tag {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .fraud-tag-safe {
+      background-color: #E6FBF7;
+      color: var(--accent);
+    }
+    .fraud-tag-flagged {
+      background-color: #FDF2F4;
+      color: #EF4444;
+    }
+
+    /* Bento Wide Card */
+    .bento-wide-card {
+      grid-column: span 2;
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .wide-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .wide-icon {
+      font-size: 32px;
+    }
+    .wide-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .wide-subtitle {
+      font-size: 13px;
+      color: var(--text-gray);
+    }
+    .bento-wide-card a {
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 15px;
+      transition: gap 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .bento-wide-card a:hover {
+      gap: 8px;
+    }
+
+    /* --------------------------------------------------------------------------
+       7. FEATURE BLOCKS (KNOWLEDGE BASE & ANALYTICS)
+       -------------------------------------------------------------------------- */
+    .feature-block .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .feature-info {
+      text-align: left;
+    }
+    .feature-info .badge {
+      margin-bottom: 16px;
+    }
+    .feature-info h2 {
+      text-align: left;
+      font-size: 40px;
+      margin-bottom: 18px;
+    }
+    .feature-subtitle {
+      font-size: 16px;
+      color: var(--text-gray);
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .checklist li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+    .checklist li svg {
+      color: var(--accent);
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Knowledge Card */
+    .kb-card {
+      padding: 32px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .kb-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-light);
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .kb-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .kb-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      background-color: var(--bg-lavender);
+      border-radius: 12px;
+      border: 1px solid rgba(124, 58, 237, 0.04);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .kb-tag {
+      font-size: 9px;
+      font-weight: 800;
+      background-color: #E6FBF7;
+      color: var(--accent);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+    .kb-upload-btn {
+      width: 100%;
+      padding: 16px;
+      border: 2px dashed rgba(124, 58, 237, 0.25);
+      background-color: transparent;
+      color: var(--primary);
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .kb-upload-btn:hover {
+      background-color: var(--primary-glow);
+      border-color: var(--primary);
+    }
+
+    /* Analytics Card */
+    .analytics-card {
+      padding: 32px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .analytics-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background-color: #F8FAFC;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .stat-val {
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .stat-val.teal { color: var(--accent); }
+    .stat-val.purple { color: var(--primary); }
+    .stat-val.green { color: #10B981; }
+    .stat-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+    }
+    .chart-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-light);
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    .line-chart-svg {
+      width: 100%;
+      height: 120px;
+    }
+
+    /* --------------------------------------------------------------------------
+       8. HOW IT WORKS
+       -------------------------------------------------------------------------- */
+    .how-it-works {
+      text-align: center;
+    }
+    .timeline-container {
+      position: relative;
+      margin-bottom: 80px;
+      padding: 0 40px;
+    }
+    .timeline-line {
+      position: absolute;
+      top: 30px;
+      left: 80px;
+      right: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      z-index: 1;
+    }
+    .timeline-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      position: relative;
+      z-index: 2;
+    }
+    .timeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-num {
+      width: 60px;
+      height: 60px;
+      background-color: var(--bg-white);
+      border: 3px solid var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 20px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .timeline-step:hover .step-num {
+      transform: scale(1.15);
+      background-color: var(--primary);
+      color: var(--text-white);
+      box-shadow: 0 0 16px rgba(124, 58, 237, 0.4);
+    }
+    .timeline-step:nth-child(even) .step-num {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .timeline-step:nth-child(even):hover .step-num {
+      background-color: var(--accent);
+      color: var(--text-white);
+      box-shadow: 0 0 16px rgba(20, 184, 166, 0.4);
+    }
+    .step-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-dark);
+    }
+    .step-desc {
+      font-size: 13px;
+      color: var(--text-gray);
+      max-width: 180px;
+      line-height: 1.4;
+    }
+
+    /* Testimonial Card below */
+    .testimonial-works-card {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 36px;
+      text-align: center;
+    }
+    .testimonial-works-card blockquote {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: var(--text-dark);
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+    .testimonial-works-card .author {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* --------------------------------------------------------------------------
+       9. COMPARISON TABLE
+       -------------------------------------------------------------------------- */
+    .compare {
+      background-color: var(--bg-white);
+      text-align: center;
+    }
+    .compare-table-wrapper {
+      max-width: 900px;
+      margin: 0 auto 30px auto;
+      overflow-x: auto;
+    }
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+    .compare-table th, .compare-table td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .compare-table th {
+      font-weight: 700;
+      color: var(--text-gray);
+    }
+    .compare-table th.col-primary {
+      background-color: var(--primary-glow);
+      color: var(--primary);
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      border-bottom: 2px solid var(--primary);
+    }
+    .compare-table td.col-primary-td {
+      background-color: rgba(124, 58, 237, 0.02);
+      font-weight: 600;
+      border-left: 1px solid rgba(124, 58, 237, 0.1);
+      border-right: 1px solid rgba(124, 58, 237, 0.1);
+    }
+    .compare-table tr:last-child td.col-primary-td {
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+    }
+    .compare-table td svg {
+      width: 16px;
+      height: 16px;
+    }
+    .icon-check {
+      color: var(--accent);
+    }
+    .icon-close {
+      color: #EF4444;
+    }
+
+    /* --------------------------------------------------------------------------
+       10. TESTIMONIALS
+       -------------------------------------------------------------------------- */
+    .testimonials {
+      background-color: var(--bg-white);
+    }
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .testimonial-card {
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+    }
+    .stars-row {
+      margin-bottom: 18px;
+    }
+    .testi-quote {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-gray);
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .testi-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .author-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-white);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .ac-1 { background-color: var(--primary); }
+    .ac-2 { background-color: var(--accent); }
+    .ac-3 { background-color: #EC4899; }
+    .author-meta {
+      display: flex;
+      flex-direction: column;
+    }
+    .author-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .author-role {
+      font-size: 11px;
+      color: var(--text-light);
+    }
+
+    /* --------------------------------------------------------------------------
+       11. ROI CALCULATOR
+       -------------------------------------------------------------------------- */
+    .roi-card {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    
+    /* Left Panel: Sliders */
+    .roi-left {
+      padding: 48px;
+      background-color: var(--bg-white);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .slider-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .slider-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+      font-family: monospace;
+    }
+    .roi-slider {
+      width: 100%;
+      height: 6px;
+      background: #E2E8F0;
+      border-radius: 5px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      accent-color: var(--primary);
+    }
+    .roi-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .roi-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    .number-input-field {
+      width: 100%;
+      padding: 12px 16px;
+      background-color: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dark);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .number-input-field:focus {
+      border-color: var(--primary);
+    }
+
+    /* Right Panel: Results */
+    .roi-right {
+      padding: 48px;
+      background-color: #FAF9FF;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .roi-results {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .roi-result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+    }
+    .roi-result-lbl {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-gray);
+    }
+    .roi-result-val {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+    .roi-result-val.savings {
+      color: var(--accent);
+      font-size: 32px;
+    }
+
+    /* --------------------------------------------------------------------------
+       12. FAQ SECTION
+       -------------------------------------------------------------------------- */
+    .faq {
+      background-color: var(--bg-white);
+    }
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .faq-item {
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      background-color: #F8FAFC;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .faq-item.active {
+      background-color: var(--bg-white);
+      border-color: var(--primary);
+      box-shadow: var(--shadow-soft);
+    }
+    .faq-question {
+      padding: 22px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-dark);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .faq-icon-toggle {
+      font-size: 20px;
+      color: var(--text-gray);
+      transition: transform 0.3s;
+    }
+    .faq-item.active .faq-icon-toggle {
+      transform: rotate(45deg);
+      color: var(--primary);
+    }
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 0 28px;
+    }
+    .faq-answer-inner {
+      padding-bottom: 24px;
+      font-size: 14px;
+      color: var(--text-gray);
+      line-height: 1.6;
+    }
+
+    /* --------------------------------------------------------------------------
+       13. FINAL CTA & FOOTER
+       -------------------------------------------------------------------------- */
+    .cta-trust-bar {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin-top: 50px;
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .cta-trust-bar span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    footer {
+      background-color: var(--bg-darker);
+      color: #94A3B8;
+      padding: 80px 0 40px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(3, 1fr);
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .footer-logo {
+      color: var(--text-white);
+    }
+    .footer-col h5 {
+      color: var(--text-white);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .footer-col a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover {
+      color: var(--primary);
+    }
+    
+    .footer-row-2 {
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 30px 0;
+      margin-bottom: 30px;
+    }
+    .footer-row-2 h5 {
+      color: var(--text-white);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .company-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #64748B;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 30px;
+    }
+    .footer-socials {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+    .footer-socials a {
+      color: #64748B;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-socials a:hover {
+      color: var(--primary);
+    }
+
+    /* --------------------------------------------------------------------------
+       14. RESPONSIVE MEDIA QUERIES
+       -------------------------------------------------------------------------- */
+    @media (max-width: 1024px) {
+      .hero-h1 {
+        font-size: 56px;
+      }
+      .bento-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+      }
+      .bento-big-card {
+        grid-row: span 1;
+      }
+      .bento-wide-card {
+        grid-column: span 1;
+      }
+      .feature-block .container {
+        grid-template-columns: 1fr;
+        gap: 60px;
+      }
+      .roi-card {
+        grid-template-columns: 1fr;
+      }
+      .roi-left {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+    }
+
+    @media (max-width: 768px) {
+      section {
+        padding: 60px 0;
+      }
+      .navbar {
+        height: 64px;
+      }
+      .mobile-nav-panel {
+        top: 64px;
+      }
+      .nav-links, .nav-actions {
+        display: none;
+      }
+      .mobile-menu-btn {
+        display: block;
+      }
+      .hero {
+        padding-top: 120px;
+        padding-bottom: 60px;
+      }
+      .hero-h1 {
+        font-size: 40px;
+      }
+      .hero-subtext {
+        font-size: 16px;
+      }
+      .hero-ctas {
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 20px;
+      }
+      .hero-ctas .btn {
+        width: 100%;
+      }
+      .hero-demo-card {
+        grid-template-columns: 1fr;
+      }
+      .demo-left-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .panel-floating-badge-right {
+        display: none;
+      }
+      .problem-cards {
+        grid-template-columns: 1fr;
+      }
+      .timeline-line {
+        display: none;
+      }
+      .timeline-steps {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .timeline-step {
+        text-align: center;
+      }
+      .step-desc {
+        max-width: 100%;
+      }
+      .testimonials-grid {
+        grid-template-columns: 1fr;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      .footer-bottom {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. STICKY NAVBAR -->
+  <header class="navbar">
+    <div class="container">
+      <a href="#" class="logo-container">
+        <div class="logo-icon">
+          <!-- Robot Face / SVG Logo -->
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 35 40 A 15 15 0 0 1 65 40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+            <path d="M 28 38 L 72 38 L 76 78 C 76 81, 74 83, 71 83 L 29 83 C 26 83, 24 81, 24 78 Z" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+            <circle cx="40" cy="55" r="5" fill="#fff" />
+            <circle cx="60" cy="55" r="5" fill="#fff" />
+          </svg>
+        </div>
+        <span>ORYQX</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#compare">Compare</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="#signin" class="btn btn-ghost">Sign in</a>
+        <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding: 10px 24px;">Start Free →</a>
+      </div>
+
+      <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation">
+        <!-- Hamburger Icon -->
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Panel -->
+  <div class="mobile-nav-panel" id="mobile-nav-panel">
+    <ul class="mobile-nav-links">
+      <li><a href="#features" onclick="toggleMobileMenu()">Features</a></li>
+      <li><a href="#pricing" onclick="toggleMobileMenu()">Pricing</a></li>
+      <li><a href="#compare" onclick="toggleMobileMenu()">Compare</a></li>
+      <li><a href="#resources" onclick="toggleMobileMenu()">Resources</a></li>
+    </ul>
+    <div class="mobile-nav-actions">
+      <a href="#signin" class="btn btn-outline" onclick="toggleMobileMenu()">Sign in</a>
+      <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary" onclick="toggleMobileMenu()">Start Free →</a>
+    </div>
+  </div>
+
+  <!-- 2. HERO SECTION -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="badge badge-purple">⚡ Trusted by Shopify merchants in 15+ countries</span>
+      </div>
+      
+      <h1 class="hero-h1">
+        The AI Support Platform<br>
+        <span class="text-gradient">Built for Shopify Growth</span>
+      </h1>
+      
+      <p class="hero-subtext">
+        Resolve 60%+ support tickets automatically. Your AI agent learns your brand, handles multilingual customers, and never sleeps.
+      </p>
+      
+      <div class="hero-ctas">
+        <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Start Free Trial →</a>
+        <a href="#demo" class="btn btn-outline">Watch 2-min Demo</a>
+      </div>
+      
+      <div class="hero-trustline">
+        <span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          No credit card required
+        </span>
+        <span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          14-day free trial
+        </span>
+        <span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Setup in 5 minutes
+        </span>
+      </div>
+
+      <!-- HERO DEMO CARD -->
+      <div class="card hero-demo-card">
+        <!-- LEFT PANEL: Live Tickets -->
+        <div class="demo-left-panel">
+          <div class="panel-floating-badge-top">57% RESOLVED</div>
+          
+          <div class="panel-header">
+            <h4>Live Tickets</h4>
+            <div class="pulse-badge">
+              <span class="pulse-dot"></span>
+              <span>LIVE</span>
+            </div>
+          </div>
+
+          <div class="ticket-rows">
+            <div class="ticket-row">
+              <div class="ticket-info">
+                <span class="ticket-user">Anna M.</span>
+                <span class="ticket-desc">Refund request</span>
+              </div>
+              <span class="ticket-status status-auto">AUTO RESOLVED</span>
+            </div>
+            
+            <div class="ticket-row">
+              <div class="ticket-info">
+                <span class="ticket-user">Yuki T.</span>
+                <span class="ticket-desc">返品したいです</span>
+              </div>
+              <span class="ticket-status status-auto">AUTO RESOLVED</span>
+            </div>
+
+            <div class="ticket-row">
+              <div class="ticket-info">
+                <span class="ticket-user">Carlos R.</span>
+                <span class="ticket-desc">Cambio de talla</span>
+              </div>
+              <span class="ticket-status status-auto">AUTO RESOLVED</span>
+            </div>
+
+            <div class="ticket-row">
+              <div class="ticket-info">
+                <span class="ticket-user">Sophie L.</span>
+                <span class="ticket-desc">Wholesale inquiry</span>
+              </div>
+              <span class="ticket-status status-assigned">ASSIGNED</span>
+            </div>
+          </div>
+
+          <div class="panel-floating-badge-bottom">99.9% UPTIME</div>
+        </div>
+
+        <!-- RIGHT PANEL: Chat Demo -->
+        <div class="demo-right-panel">
+          <div class="panel-floating-badge-right">1.2s RESPONSE</div>
+          
+          <div>
+            <div class="agent-header">
+              <div class="agent-avatar">O</div>
+              <div class="agent-meta">
+                <span class="agent-name">ORYQX Agent</span>
+                <span class="agent-status"><span class="agent-status-dot"></span>Online · Multilingual</span>
+              </div>
+            </div>
+
+            <div class="chat-messages">
+              <div class="chat-bubble bubble-user">
+                Hola, ¿Cuándo llegará mi pedido #4821?
+              </div>
+              <div class="chat-bubble bubble-ai">
+                ¡Hola! Tu pedido #4821 fue enviado ayer mediante USPS Priority Mail y está programado para ser entregado este jueves. Puedes seguirlo aquí: <span style="text-decoration: underline; cursor: pointer;">oryqx.com/track/4821</span>
+              </div>
+              <div class="chat-bubble bubble-user">
+                ¡Perfecto, gracias!
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. LOGO STRIP -->
+  <div class="logo-strip">
+    <div class="container">
+      <div class="logo-strip-title">POWERING CUSTOMER SUPPORT FOR GROWING SHOPIFY BRANDS</div>
+      
+      <div class="logo-scroller-wrapper">
+        <div class="logo-scroller">
+          <span>LuxeStore</span>
+          <span>ComfortWear</span>
+          <span>TechGadgets</span>
+          <span>HomeDecor</span>
+          <span>BeautyBox</span>
+          <span>FashionHub</span>
+          <span>StyleStore</span>
+          <!-- Duplicate for seamless scroll -->
+          <span>LuxeStore</span>
+          <span>ComfortWear</span>
+          <span>TechGadgets</span>
+          <span>HomeDecor</span>
+          <span>BeautyBox</span>
+          <span>FashionHub</span>
+          <span>StyleStore</span>
+        </div>
+      </div>
+
+      <div class="g2-rating-pill">
+        <span class="stars">★★★★★</span>
+        <span><strong>4.9/5</strong> rating on G2</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. PROBLEM SECTION -->
+  <section class="problem fade-in-section">
+    <div class="container">
+      <h2>Support tools weren't built for modern Shopify brands</h2>
+      <p class="section-subtitle">Growing storefronts are crushed by standard ticketing pricing and outdated rule-based chatbots.</p>
+
+      <div class="problem-cards">
+        <div class="card problem-card">
+          <div class="problem-icon">🎟️</div>
+          <h3>Gorgias charges $360/month for 1,500 tickets</h3>
+          <p>You're paying enterprise prices for SMB needs. Scale your business without scaling your customer support invoice.</p>
+        </div>
+
+        <div class="card problem-card">
+          <div class="problem-icon">🌐</div>
+          <h3>Your customers speak multiple languages</h3>
+          <p>Generic AI fails when customers don't write in perfect English. Lost queries translate into lost checkout carts.</p>
+        </div>
+
+        <div class="card problem-card">
+          <div class="problem-icon">🤖</div>
+          <h3>Basic chatbots forget everything</h3>
+          <p>Every conversation starts from zero. No database context. No order lookup memory. Customers get frustrated and bounce.</p>
+        </div>
+      </div>
+
+      <div class="problem-link-wrapper">
+        <a href="#features" class="problem-link">ORYQX solves all three →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. FEATURES GRID -->
+  <section id="features" class="features-grid fade-in-section">
+    <div class="container">
+      <h2>One AI platform. <span style="color: var(--text-light); font-weight: 700;">Every support scenario.</span></h2>
+      <p class="section-subtitle">Powerful underlying models trained specifically to read order contexts, manage policies, and issue instant resolutions.</p>
+
+      <div class="bento-grid">
+        <!-- Big Card: Multilingual -->
+        <div class="card bento-big-card">
+          <div>
+            <h3>AI that speaks your customers' language</h3>
+            <p>Customer writes in any language. AI responds perfectly — every time. Instantly translates policies, returns, and order details.</p>
+          </div>
+          
+          <div class="bento-chat-demo">
+            <div class="bento-chat-row">
+              <span class="bento-chat-label">🇯🇵 Customer (Japanese)</span>
+              <div class="bento-chat-bubble bento-bubble-cust">返品ポリシーを教えてください</div>
+            </div>
+            <div class="bento-chat-row" style="align-items: flex-end;">
+              <span class="bento-chat-label">ORYQX AI (1.1s)</span>
+              <div class="bento-chat-bubble bento-bubble-ai">ご購入後30日以内であれば全額返金いたします ✨</div>
+            </div>
+            <div class="bento-chat-row">
+              <span class="bento-chat-label">🇩🇪 Customer (German)</span>
+              <div class="bento-chat-bubble bento-bubble-cust">Wann kommt meine Bestellung?</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Small Card: Memory Engine -->
+        <div class="card bento-small-card">
+          <div class="bento-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12a10 10 0 0 1 10-10z"></path><path d="M12 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"></path><circle cx="12" cy="12" r="2"></circle></svg>
+          </div>
+          <h3>Memory Engine</h3>
+          <p>Remembers every customer, order, and complaint. Forever. Accesses complete customer memory profiles in real-time.</p>
+          
+          <div class="orbit-graphic">
+            <div class="orbit-ring">
+              <div class="orbit-satellite"></div>
+            </div>
+            <div class="orbit-center">
+              <svg viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44L2.18 7.04A2.5 2.5 0 0 1 4.5 4.5h5zm5 0h5a2.5 2.5 0 0 1 2.32 2.54l-4.86 12.9a2.5 2.5 0 0 1-4.96-.44v-15A2.5 2.5 0 0 1 14.5 2z"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Small Card: Auto-Resolved -->
+        <div class="card bento-small-card">
+          <div class="bento-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </div>
+          <h3>57%+ Auto-Resolved</h3>
+          <p>Deflects and resolves shipping status, sizing questions, and cancellation requests without human agent intervention.</p>
+          
+          <div class="bar-chart-graphic" id="bar-chart">
+            <div class="chart-bar"></div>
+            <div class="chart-bar"></div>
+            <div class="chart-bar"></div>
+            <div class="chart-bar"></div>
+          </div>
+        </div>
+
+        <!-- Small Card: Fraud Detection -->
+        <div class="card bento-small-card">
+          <div class="bento-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3>Fraud Detection</h3>
+          <p>Flags suspicious billing records, repeat refund request patterns, and shipping redirects automatically.</p>
+          
+          <div class="fraud-rows">
+            <div class="fraud-row">
+              <span class="fraud-order">Order #4821</span>
+              <span class="fraud-tag fraud-tag-safe">✓ SAFE</span>
+            </div>
+            <div class="fraud-row">
+              <span class="fraud-order">Order #4823</span>
+              <span class="fraud-tag fraud-tag-flagged">⚠ FLAGGED</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wide Card: Trial -->
+        <div class="card bento-wide-card">
+          <div class="wide-left">
+            <span class="wide-icon">📅</span>
+            <div>
+              <h3 class="wide-title">14-day Free Trial</h3>
+              <p class="wide-subtitle">No credit card. Cancel anytime. Experience the future of automated Shopify support today.</p>
+            </div>
+          </div>
+          <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer">Start now →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. KNOWLEDGE BASE FEATURE -->
+  <section class="feature-block section-lavender fade-in-section">
+    <div class="container">
+      <div class="feature-info">
+        <span class="badge badge-purple">FEATURE</span>
+        <h2>AI that learns your brand</h2>
+        <p class="feature-subtitle">
+          Train your support agent directly on your existing documents. Upload store FAQs, return parameters, policy rules, and sizing guidelines in minutes. ORYQX matches your tone perfectly.
+        </p>
+        <ul class="checklist">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Custom brand voice & tone
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            FAQ and policy training in minutes
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Self-improving loops with agent feedback
+          </li>
+        </ul>
+      </div>
+
+      <div class="card kb-card">
+        <div class="kb-header">Knowledge Base</div>
+        <div class="kb-rows">
+          <div class="kb-row">
+            <span>Shipping Policy</span>
+            <span class="kb-tag">TRAINED</span>
+          </div>
+          <div class="kb-row">
+            <span>Returns & Exchanges</span>
+            <span class="kb-tag">TRAINED</span>
+          </div>
+          <div class="kb-row">
+            <span>Sizing Guide</span>
+            <span class="kb-tag">TRAINED</span>
+          </div>
+          <div class="kb-row">
+            <span>Brand Tone of Voice</span>
+            <span class="kb-tag">TRAINED</span>
+          </div>
+        </div>
+        <button class="kb-upload-btn">+ Upload documents to train ORYQX</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ANALYTICS FEATURE -->
+  <section class="feature-block fade-in-section">
+    <div class="container">
+      <div class="card analytics-card">
+        <div class="analytics-stats">
+          <div class="stat-item">
+            <span class="stat-val teal">57%</span>
+            <span class="stat-lbl">Resolved</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val purple">4.9</span>
+            <span class="stat-lbl">CSAT</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val green">+$12k</span>
+            <span class="stat-lbl">Revenue</span>
+          </div>
+        </div>
+        
+        <div class="chart-label">Last 7 Days</div>
+        
+        <!-- SVG Line Chart Graphic -->
+        <svg class="line-chart-svg" viewBox="0 0 400 120">
+          <defs>
+            <linearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <path d="M 0 100 Q 80 80, 160 50 T 320 20 T 400 10 L 400 120 L 0 120 Z" fill="url(#chartGrad)" />
+          <path d="M 0 100 Q 80 80, 160 50 T 320 20 T 400 10" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" />
+          <circle cx="160" cy="50" r="5" fill="var(--primary)" stroke="#fff" stroke-width="2" />
+          <circle cx="320" cy="20" r="5" fill="var(--primary)" stroke="#fff" stroke-width="2" />
+        </svg>
+      </div>
+
+      <div class="feature-info" style="grid-column: 1; grid-row: 1;">
+        <span class="badge badge-teal">FEATURE</span>
+        <h2>Analytics that drive decisions</h2>
+        <p class="feature-subtitle">
+          Monitor your customer satisfaction performance in real-time. Attribute ticket deflection metrics to actual cost savings and review revenue-generating discount conversions.
+        </p>
+        <ul class="checklist">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Live resolution and deflection metrics
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            CSAT feedback rating trackers
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Revenue-attribution and discount reports
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. HOW IT WORKS -->
+  <section class="how-it-works section-lavender fade-in-section">
+    <div class="container">
+      <h2>From install to autopilot in 5 minutes</h2>
+      <p class="section-subtitle">Four simple steps to launch your self-learning, automated customer agent.</p>
+
+      <div class="timeline-container">
+        <div class="timeline-line"></div>
+        <div class="timeline-steps">
+          <div class="timeline-step">
+            <div class="step-num">01</div>
+            <div class="step-title">Install</div>
+            <div class="step-desc">One-click Shopify app installation process.</div>
+          </div>
+          
+          <div class="timeline-step">
+            <div class="step-num">02</div>
+            <div class="step-title">Train</div>
+            <div class="step-desc">Sync your store FAQs and policies in 2 minutes.</div>
+          </div>
+
+          <div class="timeline-step">
+            <div class="step-num">03</div>
+            <div class="step-title">Launch</div>
+            <div class="step-desc">Your AI goes live and listens to channels immediately.</div>
+          </div>
+
+          <div class="timeline-step">
+            <div class="step-num">04</div>
+            <div class="step-title">Scale</div>
+            <div class="step-desc">Watch tickets auto-resolve while your team focuses on growth.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card testimonial-works-card">
+        <blockquote>
+          "We went from 8 hours of daily manual support to less than 45 minutes. ORYQX handles the rest automatically."
+        </blockquote>
+        <div class="author">Sarah K. | Fashion Brand Owner</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. COMPARISON TABLE -->
+  <section id="compare" class="compare fade-in-section">
+    <div class="container">
+      <h2>Why fast-growing brands choose ORYQX</h2>
+      <p class="section-subtitle">Compare performance, pricing, features, and setup times side-by-side.</p>
+
+      <div class="compare-table-wrapper">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Features</th>
+              <th class="col-primary">ORYQX</th>
+              <th>Gorgias</th>
+              <th>Freshdesk</th>
+              <th>Zendesk</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Starting Price</strong></td>
+              <td class="col-primary-td">$99/mo</td>
+              <td>$360/mo</td>
+              <td>$240/mo</td>
+              <td>$345/mo</td>
+            </tr>
+            <tr>
+              <td><strong>AI Memory Engine</strong></td>
+              <td class="col-primary-td">
+                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Multilingual AI</strong></td>
+              <td class="col-primary-td">
+                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+              <td><span style="color: var(--text-gray); font-size: 13px;">Limited</span></td>
+              <td><span style="color: var(--text-gray); font-size: 13px;">Limited</span></td>
+            </tr>
+            <tr>
+              <td><strong>Auto-Resolve Rate</strong></td>
+              <td class="col-primary-td">57%+</td>
+              <td>6%</td>
+              <td>20%</td>
+              <td>15%</td>
+            </tr>
+            <tr>
+              <td><strong>Fraud Detection</strong></td>
+              <td class="col-primary-td">
+                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Shopify Native</strong></td>
+              <td class="col-primary-td">
+                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </td>
+              <td>
+                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+              <td>
+                <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Setup Time</strong></td>
+              <td class="col-primary-td">5 min</td>
+              <td>2-3 hrs</td>
+              <td>1 day</td>
+              <td>2-3 days</td>
+            </tr>
+            <tr>
+              <td><strong>Free Trial</strong></td>
+              <td class="col-primary-td">14 days</td>
+              <td>10 days</td>
+              <td>21 days</td>
+              <td>14 days</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <span class="badge badge-teal" style="font-size: 14px;">🎉 72% cheaper than Gorgias</span>
+    </div>
+  </section>
+
+  <!-- 10. TESTIMONIALS -->
+  <section class="testimonials fade-in-section">
+    <div class="container">
+      <h2>Trusted by brands that demand more from support</h2>
+      <p class="section-subtitle">Read how Shopify stores automated their tickets, cut response times, and optimized CX teams.</p>
+
+      <div class="testimonials-grid">
+        <div class="card testimonial-card">
+          <div>
+            <div class="stars-row"><span class="stars">★★★★★</span></div>
+            <p class="testi-quote">
+              "We reduced our support team from 5 to 2 people. ORYQX handles everything automatically. Best ROI we've ever seen on a tool."
+            </p>
+          </div>
+          <div class="testi-author">
+            <div class="author-circle ac-1">SM</div>
+            <div class="author-meta">
+              <span class="author-name">Sarah Mitchell</span>
+              <span class="author-role">Head of CX, StyleBrand</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card testimonial-card">
+          <div>
+            <div class="stars-row"><span class="stars">★★★★★</span></div>
+            <p class="testi-quote">
+              "Setup took literally 4 minutes. Within a week, 63% of our tickets were auto-resolved. Our team finally has time to focus on growth."
+            </p>
+          </div>
+          <div class="testi-author">
+            <div class="author-circle ac-2">JC</div>
+            <div class="author-meta">
+              <span class="author-name">James Chen</span>
+              <span class="author-role">Founder, TechGadgets Store</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card testimonial-card">
+          <div>
+            <div class="stars-row"><span class="stars">★★★★★</span></div>
+            <p class="testi-quote">
+              "The multilingual support is incredible. Our customers write in 6 different languages and ORYQX handles all of them perfectly."
+            </p>
+          </div>
+          <div class="testi-author">
+            <div class="author-circle ac-3">PS</div>
+            <div class="author-meta">
+              <span class="author-name">Priya Sharma</span>
+              <span class="author-role">Operations Lead, FashionHub</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. ROI CALCULATOR -->
+  <section id="pricing" class="section-lavender fade-in-section">
+    <div class="container">
+      <h2>Calculate your savings</h2>
+      <p class="section-subtitle">Adjust the sliders to estimate how much support cost and time you can save with ORYQX.</p>
+
+      <div class="card roi-card">
+        <!-- Sliders panel -->
+        <div class="roi-left">
+          <!-- Support tickets slider -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">Monthly support tickets</span>
+              <span class="slider-val" id="tickets-val">1,500</span>
+            </div>
+            <input type="range" class="roi-slider" id="tickets-slider" min="100" max="10000" step="100" value="1500">
+          </div>
+          
+          <!-- Current tool cost input -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">Current tool cost / month ($)</span>
+            </div>
+            <input type="number" class="number-input-field" id="cost-input" value="360" min="0">
+          </div>
+
+          <!-- Support agents slider -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">Support agents</span>
+              <span class="slider-val" id="agents-val">3</span>
+            </div>
+            <input type="range" class="roi-slider" id="agents-slider" min="1" max="20" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Live results panel -->
+        <div class="roi-right">
+          <div class="roi-results">
+            <div class="roi-result-item">
+              <span class="roi-result-lbl">💰 Monthly savings</span>
+              <span class="roi-result-val savings" id="savings-val">$2,061</span>
+            </div>
+            
+            <div class="roi-result-item">
+              <span class="roi-result-lbl">⏰ Hours saved / month</span>
+              <span class="roi-result-val" id="hours-val">114 hrs</span>
+            </div>
+
+            <div class="roi-result-item">
+              <span class="roi-result-lbl">📊 ROI</span>
+              <span class="roi-result-val" id="roi-val">2082%</span>
+            </div>
+          </div>
+
+          <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="width: 100%;">Start saving today →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. FAQ SECTION -->
+  <section class="faq fade-in-section">
+    <div class="container">
+      <h2>Everything you need to know</h2>
+      <p class="section-subtitle">Find answers to common questions about platform setup, multilingual support, and operations.</p>
+
+      <div class="faq-list">
+        <div class="faq-item active">
+          <div class="faq-question">
+            <span>How is ORYQX different from Gorgias?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer" style="max-height: 200px;">
+            <div class="faq-answer-inner">
+              Gorgias charges base pricing on ticket volume, meaning you are penalized as your customer base scales. ORYQX charges a flat flat-rate model ($99/mo starting price) and provides a fully context-aware AI Memory Engine that automatically looks up order statuses and returns parameters to resolve 57%+ of queries without human agent logins.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Does it really work for multilingual customers?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Yes. ORYQX natively reads and responds in over 85 languages. If a customer writes in Spanish, French, or Japanese, the AI reviews your English store policies, runs database order queries, and writes back a fully contextual reply in their native language within 1.2 seconds.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>How long does setup take?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Less than 5 minutes. Installing the app via Shopify is a one-click process. Once connected, upload or paste your shop's return parameters, shipping conditions, and FAQs, and the AI is ready to resolve customer support issues immediately.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>What happens when AI can't resolve a ticket?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              When a query falls below your set confidence score or requires complex manual review, the ticket is instantly flagged and placed into the priority escalation queue inside your Shopify dashboard, notifying your support agents immediately.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Can I cancel anytime?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Absolutely. There are no lock-in terms or multi-year contracts. You can upgrade, downgrade, or cancel your ORYQX subscription directly through your Shopify merchant account admin at any time.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Is my customer data secure?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Yes, data security is our top priority. ORYQX utilizes enterprise-grade encryption for all network transmissions and is SOC2 compliant. Customer profiles, order histories, and payment fields are tokenized securely and are never exposed publicly.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Do you offer custom enterprise plans?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Yes. For high-volume storefronts processing more than 10,000 tickets monthly, we offer enterprise plans featuring dedicated support accounts, fine-tuned custom voice models, and tailored SLA performance guarantees.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>What Shopify plans does ORYQX support?</span>
+            <span class="faq-icon-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              ORYQX supports all standard Shopify setups, including Basic Shopify, Shopify, Shopify Advanced, and Shopify Plus configurations.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. FINAL CTA -->
+  <section id="trial" class="section-dark fade-in-section" style="text-align: center; position: relative; overflow: hidden; background-color: var(--bg-dark);">
+    <div class="container" style="position: relative; z-index: 2;">
+      <h2 style="font-size: 56px; margin-bottom: 24px; color: var(--text-white);">
+        Start resolving tickets <span class="text-gradient" style="background: linear-gradient(90deg, #A78BFA 0%, #2DD4BF 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">on autopilot</span>
+      </h2>
+      <p class="section-subtitle" style="color: #94A3B8; max-width: 600px; margin: 0 auto 40px auto;">
+        Join 500+ Shopify brands already using ORYQX. Free forever plan available. No credit card needed.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="https://apps.shopify.com/oryqx" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Start Free Trial →</a>
+        <a href="mailto:support@oryqx.com" class="btn btn-outline-white">Book a Demo</a>
+      </div>
+
+      <!-- Trust Bar -->
+      <div class="cta-trust-bar">
+        <span>
+          <!-- Lock Icon -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          SOC2 Compliant
+        </span>
+        <span>
+          <!-- Star Icon -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          4.9/5 Rating
+        </span>
+        <span>
+          <!-- Uptime Rocket Icon -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2S2 7 2 12s10 10 10 10 10-5 10-10-10-10-10-10z"></path><path d="M12 2v20"></path></svg>
+          99.9% Uptime
+        </span>
+        <span>
+          <!-- Support Bubble Icon -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          24/7 Support
+        </span>
+      </div>
+    </div>
+
+    <!-- Gradient Ambient Background Glows -->
+    <div style="position: absolute; top: -50%; left: -20%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+    <div style="position: absolute; bottom: -50%; right: -20%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+  </section>
+
+  <!-- 14. FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="#" class="logo-container footer-logo">
+            <div class="logo-icon" style="background-color: var(--primary);">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 35 40 A 15 15 0 0 1 65 40" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+                <path d="M 28 38 L 72 38 L 76 78 C 76 81, 74 83, 71 83 L 29 83 C 26 83, 24 81, 24 78 Z" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+                <circle cx="40" cy="55" r="5" fill="#fff" />
+                <circle cx="60" cy="55" r="5" fill="#fff" />
+              </svg>
+            </div>
+            <span>ORYQX</span>
+          </a>
+          <p style="font-size: 14px; line-height: 1.5; color: #64748B; margin-top: 10px;">
+            AI customer support platform built specifically to scale Shopify storefronts.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Product</h5>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#integrations">Integrations</a></li>
+            <li><a href="#changelog">Changelog</a></li>
+            <li><a href="#status">System Status</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Solutions</h5>
+          <ul>
+            <li><a href="#shopify">Shopify Brands</a></li>
+            <li><a href="#enterprise">Enterprise Customers</a></li>
+            <li><a href="#startups">Growth Startups</a></li>
+            <li><a href="#agencies">Partner Agencies</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="#blog">Blog Articles</a></li>
+            <li><a href="#docs">Documentation</a></li>
+            <li><a href="#api">API Reference</a></li>
+            <li><a href="#community">Developer Community</a></li>
+            <li><a href="#help">Help Center</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-row-2">
+        <h5>Company</h5>
+        <ul class="company-links">
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#careers">Careers</a></li>
+          <li><a href="#press">Press Kit</a></li>
+          <li><a href="#privacy">Privacy Policy</a></li>
+          <li><a href="#terms">Terms of Service</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 ORYQX Inc. All rights reserved. Built for Shopify.</span>
+        <ul class="footer-socials">
+          <li><a href="#twitter">Twitter</a></li>
+          <li><a href="#linkedin">LinkedIn</a></li>
+          <li><a href="#github">GitHub</a></li>
+          <li><a href="#youtube">YouTube</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <!-- --------------------------------------------------------------------------
+       15. VANILLA JAVASCRIPT LOGIC
+       -------------------------------------------------------------------------- -->
+  <script>
+    /* Mobile Menu Toggle */
+    const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+    const mobileNavPanel = document.getElementById('mobile-nav-panel');
+
+    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+
+    function toggleMobileMenu() {
+      mobileNavPanel.classList.toggle('active');
+    }
+
+    /* FAQ Accordion Toggle */
+    const faqItems = document.querySelectorAll('.faq-item');
+
+    faqItems.forEach(item => {
+      const question = item.querySelector('.faq-question');
+      question.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+        
+        // Close all items
+        faqItems.forEach(i => {
+          i.classList.remove('active');
+          i.querySelector('.faq-answer').style.maxHeight = null;
+        });
+
+        // Open clicked item if it wasn't active
+        if (!isActive) {
+          item.classList.add('active');
+          const answer = item.querySelector('.faq-answer');
+          answer.style.maxHeight = answer.scrollHeight + "px";
+        }
+      });
+    });
+
+    /* ROI Calculator Logic */
+    const ticketsSlider = document.getElementById('tickets-slider');
+    const costInput = document.getElementById('cost-input');
+    const agentsSlider = document.getElementById('agents-slider');
+
+    const ticketsVal = document.getElementById('tickets-val');
+    const agentsVal = document.getElementById('agents-val');
+
+    const savingsVal = document.getElementById('savings-val');
+    const hoursVal = document.getElementById('hours-val');
+    const roiVal = document.getElementById('roi-val');
+
+    function calculateROI() {
+      const tickets = parseFloat(ticketsSlider.value);
+      const currentCost = parseFloat(costInput.value) || 0;
+      const agents = parseFloat(agentsSlider.value);
+
+      // Display values
+      ticketsVal.textContent = tickets.toLocaleString();
+      agentsVal.textContent = agents;
+
+      // Calculations:
+      // Hours saved = 57% of tickets resolved * 8 minutes handling time saved per ticket
+      const hoursSaved = Math.round(tickets * 0.57 * (8 / 60));
+      
+      // Savings = Labor savings ($15.79/hr) + Current tool cost - ORYQX price ($99)
+      const savings = Math.round((hoursSaved * 15.79) + currentCost - 99);
+      
+      // ROI = (Savings / ORYQX Price) * 100
+      const roi = Math.round((savings / 99) * 100);
+
+      // Render results
+      hoursVal.textContent = hoursSaved.toLocaleString() + " hrs";
+      
+      if (savings < 0) {
+        savingsVal.textContent = "$0";
+        roiVal.textContent = "0%";
+      } else {
+        savingsVal.textContent = "$" + savings.toLocaleString();
+        roiVal.textContent = roi.toLocaleString() + "%";
+      }
+    }
+
+    ticketsSlider.addEventListener('input', calculateROI);
+    costInput.addEventListener('input', calculateROI);
+    agentsSlider.addEventListener('input', calculateROI);
+
+    // Initial run
+    calculateROI();
+
+    /* Fade-in scroll animations & interactive chart trigger */
+    const animatedSections = document.querySelectorAll('.fade-in-section');
+    const chartBars = document.querySelectorAll('.chart-bar');
+
+    const observerOptions = {
+      root: null,
+      threshold: 0.15,
+      rootMargin: "0px"
+    };
+
+    const sectionObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          
+          // If the feature grid is visible, animate the chart bars
+          if (entry.target.classList.contains('features-grid')) {
+            chartBars.forEach(bar => bar.classList.add('active'));
+          }
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    animatedSections.forEach(section => {
+      sectionObserver.observe(section);
+    });
+  </script>
+</body>
+</html>
