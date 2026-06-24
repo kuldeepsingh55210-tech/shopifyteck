@@ -149,7 +149,17 @@ const resolveOrder = async (req, res) => {
     const lowerCustomerMessage = customerMessage.toLowerCase();
     
     // Intents that don't need order lookup and should auto-resolve
-    const noOrderNeededIntents = ['greeting', 'unknown', 'general_inquiry', 'product_query'];
+    const noOrderNeededIntents = [
+        'greeting',
+        'unknown',
+        'general_inquiry',
+        'product_query',
+        'wrong_item',
+        'cancel_order',
+        'discount_issue',
+        'payment_issue',
+        'size_query'
+    ];
     
     const isPolicyQuestion =
         lowerCustomerMessage.includes('policy') ||
@@ -159,7 +169,7 @@ const resolveOrder = async (req, res) => {
 
     // Helper function to check if intent requires order lookup
     const doesIntentRequireOrder = (intent) => {
-        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'cancel_order', 'refund_request', 'exchange_request'];
+        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request'];
         return orderRequiredIntents.includes(intent);
     };
 

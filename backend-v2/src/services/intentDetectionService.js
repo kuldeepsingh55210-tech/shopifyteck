@@ -58,8 +58,46 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
         }
 
+        // WRONG ITEM
+        if (message.includes('wrong item') || message.includes('incorrect item') || 
+            message.includes('wrong product') || message.includes('galat item')) {
+            console.log('[Intent] Detected as wrong_item (local pattern match)');
+            return { ...defaultResult, intent: 'wrong_item', confidence: 0.95 };
+        }
+
+        // CANCEL ORDER
+        if (message.match(/\bcancel\b/) || message.includes('cancel order') || 
+            message.includes('cancel my order') || message.includes('order cancel karo')) {
+            console.log('[Intent] Detected as cancel_order (local pattern match)');
+            return { ...defaultResult, intent: 'cancel_order', confidence: 0.95 };
+        }
+
+        // DISCOUNT ISSUE
+        if (message.includes('coupon') || message.includes('discount') || 
+            message.includes('promo code') || message.includes('code not working') || 
+            message.includes('coupon invalid')) {
+            console.log('[Intent] Detected as discount_issue (local pattern match)');
+            return { ...defaultResult, intent: 'discount_issue', confidence: 0.95 };
+        }
+
+        // PAYMENT ISSUE
+        if (message.includes('payment failed') || message.includes('payment not working') || 
+            message.includes('transaction failed') || message.includes('amount deducted') || 
+            message.includes('charged twice')) {
+            console.log('[Intent] Detected as payment_issue (local pattern match)');
+            return { ...defaultResult, intent: 'payment_issue', confidence: 0.95, urgency: 'medium' };
+        }
+
+        // SIZE QUERY
+        if (message.includes('size') || message.includes('sizing') || 
+            message.includes('which size') || message.includes('size guide') || 
+            message.includes('measurements') || message.match(/\b(fit|fits)\b/)) {
+            console.log('[Intent] Detected as size_query (local pattern match)');
+            return { ...defaultResult, intent: 'size_query', confidence: 0.95 };
+        }
+
         // EXCHANGE REQUEST - product return/exchange (NOT money refund)
-        if (message.match(/\b(exchange|replace|send.*back|wrong.*item|defective|damage|damaged|broken)\b/i) &&
+        if (message.match(/\b(exchange|replace|send.*back|defective|damage|damaged|broken)\b/i) &&
             !message.includes('refund') && !message.includes('money back')) {
             console.log('[Intent] Detected as exchange_request (local pattern match)');
             return { ...defaultResult, intent: 'exchange_request', confidence: 0.9, urgency: 'medium' };
@@ -72,7 +110,7 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'refund_request', confidence: 0.9, sentiment: 'negative', urgency: 'high', escalation_hint: true };
         }
 
-        if (message.includes('shipping') || message.includes('size') || message.includes('fit') || message.includes('rate')) {
+        if (message.includes('shipping') || message.includes('rate')) {
             console.log('[Intent] Detected as policy (local pattern match)');
             return { ...defaultResult, intent: 'general_inquiry', confidence: 0.85 };
         }
@@ -91,7 +129,7 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             console.log('[Intent] RAG context injected into prompt');
         }
 
-        const promptText = `${promptPrefix}Classify this customer service message into ONE of these 15 intents:
+        const promptText = `${promptPrefix}Classify this customer service message into ONE of these 18 intents:
 1. order_status
 2. shipping_status
 3. refund_request
@@ -107,10 +145,13 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
 13. abandoned_cart
 14. delivery_issue
 15. general_inquiry
+16. wrong_item
+17. discount_issue
+18. size_query
 
 Use the context provided to better understand the customer's situation and intent.
 Return ONLY valid JSON (no markdown):
-{"intent": "order_status|shipping_status|refund_request|cancel_order|product_query|angry_customer|vip_customer|human_handoff|cod_verification|payment_issue|exchange_request|loyalty_inquiry|abandoned_cart|delivery_issue|general_inquiry", "confidence": 0.0-1.0, "sentiment": "positive|neutral|negative|angry", "urgency": "low|medium|high", "language": "english|hinglish", "secondary_intent": "null_or_string", "buying_signal": true_or_false, "escalation_hint": true_or_false}
+{"intent": "order_status|shipping_status|refund_request|cancel_order|product_query|angry_customer|vip_customer|human_handoff|cod_verification|payment_issue|exchange_request|loyalty_inquiry|abandoned_cart|delivery_issue|general_inquiry|wrong_item|discount_issue|size_query", "confidence": 0.0-1.0, "sentiment": "positive|neutral|negative|angry", "urgency": "low|medium|high", "language": "english|hinglish", "secondary_intent": "null_or_string", "buying_signal": true_or_false, "escalation_hint": true_or_false}
 
 Message: "${customerMessage}"`;
 
