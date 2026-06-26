@@ -51,18 +51,23 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
 
         // Try Groq first (faster, no rate limits)
         console.log('[Response] Trying Groq API first...');
-        const groqResponse = await generateGroqResponse(
-            customerMessage, 
-            intent, 
-            ragContext, 
-            shopDomain,
-            customPromptFlags
-        );
+        let groqResponse = null;
+        try {
+            groqResponse = await generateGroqResponse(
+                customerMessage, 
+                intent, 
+                ragContext, 
+                shopDomain,
+                customPromptFlags
+            );
+        } catch (groqError) {
+            console.error('[Response] Groq API error:', groqError.message);
+        }
         if (groqResponse) {
             console.log('[Response] Groq API success!');
             return groqResponse;
         }
-        console.log('[Response] Groq failed, falling back to Gemini...');
+        console.log('[Response] Groq failed or timed out, falling back to Gemini...');
 
         console.log(`[Response] Calling Gemini API with retry logic...`);
         console.log(`[Response] Queue size: ${rateLimiter.getQueueSize()}, Pending: ${rateLimiter.getPendingCount()}`);
