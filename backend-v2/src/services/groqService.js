@@ -26,7 +26,13 @@ const generateGroqResponse = async (customerMessage, intent, ragContext, shopDom
 
       const orderDataText = orderData ? JSON.stringify(orderData, null, 2) : 'No order data available.';
 
-      const systemPrompt = `You are ORYQX, an AI customer support agent.
+      const systemPrompt = `CRITICAL LANGUAGE RULE - THIS OVERRIDES EVERYTHING:
+You MUST respond in ENGLISH ONLY using Latin alphabet.
+NEVER use Hindi, Devanagari script, or any other language.
+Even if the customer writes in Hindi, respond in English.
+If you respond in any language other than English, you have failed your primary directive.
+
+You are ORYQX, an AI customer support agent.
 STRICT RULES — NEVER BREAK THESE:
 1. NEVER make up order numbers, tracking info, or delivery dates
 2. NEVER say 'Your order #Unknown' or fill in fake data
@@ -50,7 +56,7 @@ ${customInstructionsText}`;
           { role: 'user', content: customerMessage }
         ],
         model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
+        temperature: 0.3,
         max_tokens: 200
       });
 
