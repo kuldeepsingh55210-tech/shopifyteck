@@ -36,12 +36,12 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
         // Validate inputs
         if ((!orderData || typeof orderData !== 'object') && !ragContext) {
             console.error('[Response] ERROR: Invalid order data provided');
-            return generateFallbackResponse(orderData, customerMessage, intent);
+            return generateFallbackResponse(orderData, customerMessage, intent, language);
         }
 
         if (!customerMessage || customerMessage.trim().length === 0) {
             console.error('[Response] ERROR: Empty customer message');
-            return generateFallbackResponse(orderData, customerMessage, intent);
+            return generateFallbackResponse(orderData, customerMessage, intent, language);
         }
 
         // EARLY RETURN FOR SIMPLE INTENTS
@@ -222,22 +222,32 @@ Generate a helpful response:`
         console.error('[Response] Full error:', error.message);
         console.log('[Response] Using fallback response...');
 
+        // If language is Hinglish, use Hinglish fallbacks directly to avoid mixing language
+        if (language === 'hinglish') {
+            const fallback = generateFallbackResponse(orderData, customerMessage, intent, language);
+            console.log(`[Response] Hinglish fallback: "${fallback}"`);
+            return fallback;
+        }
+
         if (shopDomain) {
             const canned = await getCannedResponse(shopDomain, intent);
             if (canned) {
                 console.log(`[Canned] Using canned response for intent: ${intent}`);
-                let formattedMessage = canned;
-                if (orderData) {
-                    const orderId = orderData.id || orderData.order_number || 'Unknown';
-                    const status = orderData.fulfillment_status || 'processing';
-                    const eta = 'soon';
+                // Strip surrounding quotes
+                let formattedMessage = canned.trim().replace(/^["']|["']$/g, '');
+                
+                // Replace placeholders with values or defaults
+                const orderIdVal = orderData ? (orderData.id || orderData.order_number || 'your order') : 'your order';
+                const orderNumberVal = orderData ? (orderData.order_number || orderData.id || 'your order') : 'your order';
+                const statusVal = orderData ? (orderData.fulfillment_status || 'being processed') : 'being processed';
+                const etaVal = orderData ? 'soon' : '3-5 business days';
+                
+                formattedMessage = formattedMessage
+                    .replace(/{order_id}/g, orderIdVal)
+                    .replace(/{order_number}/g, orderNumberVal)
+                    .replace(/{status}/g, statusVal)
+                    .replace(/{eta}/g, etaVal);
                     
-                    formattedMessage = formattedMessage
-                        .replace(/{order_id}/g, orderId)
-                        .replace(/{order_number}/g, orderId)
-                        .replace(/{status}/g, status)
-                        .replace(/{eta}/g, eta);
-                }
                 return formattedMessage;
             }
         }
@@ -249,7 +259,7 @@ Generate a helpful response:`
                 return ragFallback;
             }
         }
-        const fallback = generateFallbackResponse(orderData, customerMessage, intent);
+        const fallback = generateFallbackResponse(orderData, customerMessage, intent, language);
         console.log(`[Response] Fallback response: "${fallback.substring(0, 100)}..."`);
         return fallback;
     }

@@ -1,6 +1,30 @@
 const db = require('../db/db');
 
-const generateFallbackResponse = (orderData, customerMessage, intent = 'order_status') => {
+const generateFallbackResponse = (orderData, customerMessage, intent = 'order_status', language = 'english') => {
+  if (language === 'hinglish') {
+    if (intent === 'order_status' || intent === 'shipping_status' || intent === 'delivery_issue') {
+      return "Aapka order number share karein, main abhi status check karta hoon!";
+    }
+    if (intent === 'refund_request') {
+      return "Aapka order number aur return reason batayein, hum refund process karte hain.";
+    }
+    if (intent === 'cancel_order') {
+      return "Order cancel karne ke liye order number share karein.";
+    }
+    if (intent === 'payment_issue') {
+      return "Aapka paisa safe hai. Order number share karein, main payment check karta hoon.";
+    }
+    if (intent === 'wrong_item') {
+      return "Galat item ke liye maafi! Order number aur photo share karein.";
+    }
+    if (intent === 'general_inquiry') {
+      return "Aapki madad karne ke liye yahan hoon! Kya jaanna chahte hain?";
+    }
+    if (intent === 'unknown' || intent === 'random') {
+      return "Samajh nahi aaya. Kripaya apni problem dobara batayein.";
+    }
+  }
+
   const orderId = orderData && orderData.id ? orderData.id : (orderData && orderData.order_number ? orderData.order_number : 'Unknown');
   const status = orderData && orderData.fulfillment_status ? orderData.fulfillment_status : 'processing';
   
