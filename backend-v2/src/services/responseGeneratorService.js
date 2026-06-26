@@ -222,12 +222,7 @@ Generate a helpful response:`
         console.error('[Response] Full error:', error.message);
         console.log('[Response] Using fallback response...');
 
-        // If language is Hinglish, use Hinglish fallbacks directly to avoid mixing language
-        if (language === 'hinglish') {
-            const fallback = generateFallbackResponse(orderData, customerMessage, intent, language);
-            console.log(`[Response] Hinglish fallback: "${fallback}"`);
-            return fallback;
-        }
+
 
         if (shopDomain) {
             const canned = await getCannedResponse(shopDomain, intent);

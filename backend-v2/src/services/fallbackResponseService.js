@@ -1,80 +1,62 @@
 const db = require('../db/db');
 
 const generateFallbackResponse = (orderData, customerMessage, intent = 'order_status', language = 'english') => {
-  if (language === 'hinglish') {
-    if (intent === 'order_status' || intent === 'shipping_status' || intent === 'delivery_issue') {
-      return "Aapka order number share karein, main abhi status check karta hoon!";
-    }
-    if (intent === 'refund_request') {
-      return "Aapka order number aur return reason batayein, hum refund process karte hain.";
-    }
-    if (intent === 'cancel_order') {
-      return "Order cancel karne ke liye order number share karein.";
-    }
-    if (intent === 'payment_issue') {
-      return "Aapka paisa safe hai. Order number share karein, main payment check karta hoon.";
-    }
-    if (intent === 'wrong_item') {
-      return "Galat item ke liye maafi! Order number aur photo share karein.";
-    }
-    if (intent === 'general_inquiry') {
-      return "Aapki madad karne ke liye yahan hoon! Kya jaanna chahte hain?";
-    }
-    if (intent === 'unknown' || intent === 'random') {
-      return "Samajh nahi aaya. Kripaya apni problem dobara batayein.";
-    }
-  }
-
-  const orderId = orderData && orderData.id ? orderData.id : (orderData && orderData.order_number ? orderData.order_number : 'Unknown');
-  const status = orderData && orderData.fulfillment_status ? orderData.fulfillment_status : 'processing';
-  
-  let orderAgeDays = 0;
-  if (orderData && orderData.created_at) {
-    orderAgeDays = Math.ceil(Math.abs(new Date() - new Date(orderData.created_at)) / (1000 * 60 * 60 * 24));
-  }
-
   // Handle intents based on the user specification
   if (intent === 'greeting') {
-    return "Hi! Welcome to ORYQX Support. How can I help you today? 😊";
+    return "Hi! Welcome to our support. How can I help you today? 😊";
   }
 
-  if (intent === 'order_status' || intent === 'shipping_status') {
-    return `Your order #${orderId} is currently ${status}. Expected delivery: soon.`;
+  if (intent === 'order_status' || intent === 'shipping_status' || intent === 'delivery_issue') {
+    return "Please share your order number and I'll check the status right away!";
   }
 
   if (intent === 'refund_request') {
-    if (orderData && orderData.financial_status === 'paid' && orderAgeDays <= 30) {
-      return `We have received your refund request for order #${orderId}. Our team will review it and get back to you within 24 hours.`;
-    } else {
-      return `We're sorry, order #${orderId} is not eligible for refund as it was placed ${orderAgeDays} days ago or its status doesn't permit it.`;
-    }
+    return "I'd be happy to help with your refund. Please share your order number.";
   }
 
   if (intent === 'cancel_order') {
-    if (orderData && orderData.fulfillment_status === 'fulfilled') {
-      return `We're sorry, order #${orderId} has already been shipped and cannot be cancelled.`;
-    } else {
-      return `We have received your cancellation request for order #${orderId}. Our team will process it and confirm shortly.`;
-    }
+    return "To cancel your order, please share your order number.";
   }
 
-  if (intent === 'exchange_request') {
-    return `We'd be happy to help you exchange your item! For orders placed within 30 days, we offer free exchanges. Please provide more details about the issue (size, defect, etc.) and we'll process it right away.`;
+  if (intent === 'payment_issue') {
+    return "Your payment concern is noted. Please share your order number so I can help.";
   }
 
-  if (intent === 'angry_customer') {
-    return `We sincerely apologize for the inconvenience. A senior support agent will contact you within 2 hours.`;
+  if (intent === 'wrong_item') {
+    return "I'm sorry about the wrong item! Please share your order number and a photo.";
+  }
+
+  if (intent === 'discount_issue') {
+    return "Please share the coupon code you're trying to use and I'll check it for you.";
+  }
+
+  if (intent === 'size_query') {
+    return "I'd love to help with sizing! What product are you looking at?";
+  }
+
+  if (intent === 'general_inquiry') {
+    return "I'm here to help! What would you like to know?";
   }
 
   if (intent === 'unknown' || intent === 'random') {
-    return "I'm not sure I understood that. Could you please describe your issue? For example: order status, returns, shipping, or refunds.";
+    return "I didn't quite understand that. Could you describe your issue?";
+  }
+
+  if (intent === 'angry_customer') {
+    return "I sincerely apologize for the inconvenience. A human agent will assist you shortly.";
+  }
+
+  // Handle other intents we had previously
+  if (intent === 'exchange_request') {
+    return "We'd be happy to help you exchange your item! For orders placed within 30 days, we offer free exchanges. Please provide more details about the issue (size, defect, etc.) and we'll process it right away.";
   }
 
   if (intent === 'human_handoff') {
-    return `Connecting you to our support team. Expected wait time: 5-10 minutes.`;
+    return "Connecting you to our support team. Expected wait time: 5-10 minutes.";
   }
 
   if (intent === 'cod_verification') {
+    const orderId = orderData && orderData.id ? orderData.id : (orderData && orderData.order_number ? orderData.order_number : 'Unknown');
     const amount = orderData && orderData.total_price ? orderData.total_price : 'the total amount';
     return `Your COD order #${orderId} is confirmed. Please keep ${amount} ready at the time of delivery.`;
   }

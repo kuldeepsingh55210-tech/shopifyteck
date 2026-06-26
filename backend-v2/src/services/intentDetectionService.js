@@ -5,9 +5,8 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
     try {
         console.log(`[Intent] Detecting intent for: "${customerMessage}"`);
 
-        // Requirement 1: Detect customer language from message
-        const isHinglish = /\b(mera|kaha|kab|aayega|chahiye|nahi|hai|hoon|karo|wapas|paisa|aur|abhi|yahan|batao|dijiye|karein|namaste|bhai|didi|ji)\b/i.test(customerMessage);
-        const detectedLanguage = isHinglish ? 'hinglish' : 'english';
+        // Requirement 1: Detect customer language from message (English-only mode)
+        const detectedLanguage = 'english';
 
         const defaultResult = { 
             intent: 'order_status', 
@@ -236,8 +235,7 @@ Message: "${customerMessage}"`;
             console.error('[Intent] API timeout - defaulting to order_status');
         }
         
-        const isHinglishFallback = /\b(mera|kaha|kab|aayega|chahiye|nahi|hai|hoon|karo|wapas|paisa|aur|abhi|yahan|batao|dijiye|karein|namaste|bhai|didi|ji)\b/i.test(customerMessage);
-        const detectedLanguageFallback = isHinglishFallback ? 'hinglish' : 'english';
+        const detectedLanguageFallback = 'english';
         
         return { 
             intent: 'order_status', 
