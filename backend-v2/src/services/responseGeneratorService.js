@@ -23,9 +23,15 @@ const extractAnswerFromRagContext = (ragContext) => {
     return answers.join(' ');
 };
 
-const generateResponse = async (orderData, customerMessage, intent = 'order_status', customPromptFlags = [], ragContext = '', shopDomain = '') => {
+const generateResponse = async (orderData, customerMessage, intent = 'order_status', customPromptFlags = [], ragContext = '', shopDomain = '', language = null) => {
     try {
         console.log(`[Response] Generating response for order ${orderData?.order_number || 'Unknown'} and message: "${customerMessage.substring(0, 50)}..." (Intent: ${intent})`);
+
+        // Detect language locally if not provided
+        if (!language) {
+            const isHinglish = /\b(mera|kaha|kab|aayega|chahiye|nahi|hai|hoon|karo|wapas|paisa|order)\b/i.test(customerMessage);
+            language = isHinglish ? 'hinglish' : 'english';
+        }
 
         // Validate inputs
         if ((!orderData || typeof orderData !== 'object') && !ragContext) {
@@ -58,7 +64,9 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
                 intent, 
                 ragContext, 
                 shopDomain,
-                customPromptFlags
+                customPromptFlags,
+                language,
+                orderData
             );
         } catch (groqError) {
             console.error('[Response] Groq API error:', groqError.message);
@@ -82,6 +90,56 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
             customInstructions = '\n\nCUSTOM INSTRUCTIONS & REASONING:\n' + customPromptFlags.map(f => `- ${f}`).join('\n');
         }
 
+        // Language Instruction for Gemini
+        let languageInstruction = '';
+        if (language === 'hinglish') {
+            languageInstruction = `You MUST reply in Hinglish (mix of Hindi and English). Use warm, friendly Indian tone. Example: 'Aapka order number share karein, main abhi check karta hoon!'`;
+        } else {
+            languageInstruction = `You MUST reply in professional English only. Example: 'Please share your order number so I can check the status for you.'`;
+        }
+
+        // Intent Specific Instruction for Gemini
+        let intentInstruction = '';
+        switch (intent) {
+            case 'greeting':
+                intentInstruction = 'Welcome the customer warmly';
+                break;
+            case 'order_status':
+                if (orderData) {
+                    intentInstruction = 'Show order status from data provided';
+                } else {
+                    intentInstruction = 'Politely ask for order number';
+                }
+                break;
+            case 'refund_request':
+                intentInstruction = 'Check if eligible, explain process';
+                break;
+            case 'cancel_order':
+                intentInstruction = 'Explain cancellation policy (24 hours)';
+                break;
+            case 'wrong_item':
+                intentInstruction = 'Apologize, ask for order number and photo';
+                break;
+            case 'discount_issue':
+                intentInstruction = 'Ask for coupon code, check common issues';
+                break;
+            case 'payment_issue':
+                intentInstruction = 'Reassure money is safe, explain next steps';
+                break;
+            case 'size_query':
+                intentInstruction = 'Ask for measurements, suggest size';
+                break;
+            case 'angry_customer':
+                intentInstruction = 'Empathize, inform human agent coming';
+                break;
+            case 'general_inquiry':
+                intentInstruction = 'Answer from knowledge base only';
+                break;
+            case 'unknown':
+                intentInstruction = 'Politely ask to clarify the issue';
+                break;
+        }
+
         const response = await rateLimiter.executeQueued(async () => {
             const apiResponse = await Promise.race([
                 axios.post(
@@ -93,14 +151,22 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
 You will be given structured order data and a customer question or message.
 Generate a friendly, concise, and helpful response using ONLY the data provided.
 
+LANGUAGE CONFIGURATION:
+${languageInstruction}
+
+CRITICAL: Never mix response language. If customer wrote in Hinglish, your ENTIRE response must be in Hinglish. If customer wrote in English, your ENTIRE response must be in English.
+
+INTENT RESOLUTION RULE:
+Intent is: "${intent}".
+Your task for this intent: ${intentInstruction}
+
 IMPORTANT RULES:
 1. Only use information from the order data provided below.
 2. Do NOT invent, assume, or hallucinate any information not in the order data.
 3. If merchant-specific knowledge is provided, use it first for store policies and FAQs.
 4. If data is missing, say so honestly (e.g., "Tracking info not yet available").
 5. If the intent or reasoning requires it, strictly follow the provided Custom Instructions.
-6. Keep response to 2-4 sentences max.
-7. If the reasoning context specifies "Language: hinglish", respond using a warm, familiar tone in Hinglish (a mix of Hindi and English) commonly used in Indian e-commerce. If "Language: english", be professional but friendly and clear.${customInstructions}
+6. Keep response to 2-4 sentences max.${customInstructions}
 
 ${ragPrefix}Order Data:
 ${orderDataText}

@@ -8,7 +8,7 @@ const groq = new Groq({
 // Track consecutive 429 rate limit errors globally at the module level
 let consecutive429s = 0;
 
-const generateGroqResponse = async (customerMessage, intent, ragContext, shopDomain, customPromptFlags = []) => {
+const generateGroqResponse = async (customerMessage, intent, ragContext, shopDomain, customPromptFlags = [], language = 'english', orderData = null) => {
   if (rateLimiter.isGlobalCooldown()) {
     console.warn('[Groq] Global rate limit cooldown active - skipping Groq call');
     return null;
@@ -24,19 +24,79 @@ const generateGroqResponse = async (customerMessage, intent, ragContext, shopDom
         customInstructionsText = '\n\nCUSTOM INSTRUCTIONS & REASONING:\n' + customPromptFlags.map(f => `- ${f}`).join('\n');
       }
 
+      // Requirement 2: Language-Matched Response Instructions
+      let languageInstruction = '';
+      if (language === 'hinglish') {
+        languageInstruction = `You MUST reply in Hinglish (mix of Hindi and English). Use warm, friendly Indian tone. Example: 'Aapka order number share karein, main abhi check karta hoon!'`;
+      } else {
+        languageInstruction = `You MUST reply in professional English only. Example: 'Please share your order number so I can check the status for you.'`;
+      }
+
+      // Requirement 3: Intent Resolution Instructions
+      let intentInstruction = '';
+      switch (intent) {
+        case 'greeting':
+          intentInstruction = 'Welcome the customer warmly';
+          break;
+        case 'order_status':
+          if (orderData) {
+            intentInstruction = 'Show order status from data provided';
+          } else {
+            intentInstruction = 'Politely ask for order number';
+          }
+          break;
+        case 'refund_request':
+          intentInstruction = 'Check if eligible, explain process';
+          break;
+        case 'cancel_order':
+          intentInstruction = 'Explain cancellation policy (24 hours)';
+          break;
+        case 'wrong_item':
+          intentInstruction = 'Apologize, ask for order number and photo';
+          break;
+        case 'discount_issue':
+          intentInstruction = 'Ask for coupon code, check common issues';
+          break;
+        case 'payment_issue':
+          intentInstruction = 'Reassure money is safe, explain next steps';
+          break;
+        case 'size_query':
+          intentInstruction = 'Ask for measurements, suggest size';
+          break;
+        case 'angry_customer':
+          intentInstruction = 'Empathize, inform human agent coming';
+          break;
+        case 'general_inquiry':
+          intentInstruction = 'Answer from knowledge base only';
+          break;
+        case 'unknown':
+          intentInstruction = 'Politely ask to clarify the issue';
+          break;
+      }
+
+      const orderDataText = orderData ? JSON.stringify(orderData, null, 2) : 'No order data available.';
+
       const systemPrompt = `You are ORYQX, an AI customer support agent for a Shopify store.
     
 Your job is to help customers with their queries professionally and helpfully.
 
+LANGUAGE CONFIGURATION:
+${languageInstruction}
+
+CRITICAL: Never mix response language. If customer wrote in Hinglish, your ENTIRE response must be in Hinglish. If customer wrote in English, your ENTIRE response must be in English.
+
+INTENT RESOLUTION RULE:
+Intent is: "${intent}".
+Your task for this intent: ${intentInstruction}
+
 KNOWLEDGE BASE:
 ${ragContext || 'No specific knowledge base available.'}
 
+ORDER DATA:
+${orderDataText}
+
 RULES:
 - Be friendly, professional and concise
-- Answer in the same language as the customer
-- If customer writes in Hindi/Hinglish, reply in Hinglish
-- For order status queries without order number, ask for order number politely
-- For general queries, give helpful answers from knowledge base
 - Keep responses under 3 sentences
 - Never make up information you don't have${customInstructionsText}`;
 

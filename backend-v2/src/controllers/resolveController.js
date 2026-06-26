@@ -316,7 +316,7 @@ const resolveOrder = async (req, res) => {
     let finalResponse = '';
 
     if (decision.action === 'escalate') {
-        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "You must escalate this ticket. Respond empathetically and inform the customer that a human agent will assist them shortly."], ragContext, shop.shop_domain);
+        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "You must escalate this ticket. Respond empathetically and inform the customer that a human agent will assist them shortly."], ragContext, shop.shop_domain, intentResult.language);
         // Escalate action
         await actionService.escalateToHuman(shop.shop_domain, null, customer_email, decision.reasoning, 'high'); // ticketId updated later
         await actionService.sendEmailNotification(shop.shop_domain, customer_email, 'Your ticket has been escalated', 'A support agent will contact you within 2 hours.');
@@ -329,7 +329,7 @@ const resolveOrder = async (req, res) => {
             }
         }
     } else if (decision.action === 'flag_fraud') {
-        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "SECURITY ALERT: High fraud risk. Do not approve requests. Politely inform the customer that their request requires manual verification by our security team."], ragContext, shop.shop_domain);
+        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "SECURITY ALERT: High fraud risk. Do not approve requests. Politely inform the customer that their request requires manual verification by our security team."], ragContext, shop.shop_domain, intentResult.language);
         // Fraud flag escalation
         await actionService.escalateToHuman(shop.shop_domain, null, customer_email, 'Fraud flag triggered', 'high');
         await actionService.logAction(shop.shop_domain, customer_email, null, 'fraud_flag', { reason: 'Triggered by high refund count' }, true);
@@ -368,9 +368,9 @@ const resolveOrder = async (req, res) => {
                     customInstructions.push(`We could not find any order with order number "${order_number}" in our system. Inform the customer politely that their order "${order_number}" was not found and ask them to verify the order number.`);
                 }
             }
-            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain);
+            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
         } else {
-            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain);
+            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain, intentResult.language);
             
             // Execute specific actions based on intent
             if (intentResult.intent === 'refund_request' && eligibility.eligible === true) {
@@ -400,7 +400,7 @@ const resolveOrder = async (req, res) => {
         // Generate response asking for more info
         // Set ticket status to 'resolved' NOT 'escalated'
         console.log('[Resolve] collect_info → auto resolving with info request');
-        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "We need more information. Ask the customer for details required to process their request."], ragContext, shop.shop_domain);
+        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "We need more information. Ask the customer for details required to process their request."], ragContext, shop.shop_domain, intentResult.language);
     }
 
     // Step 6: Save reasoning log

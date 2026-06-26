@@ -5,12 +5,16 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
     try {
         console.log(`[Intent] Detecting intent for: "${customerMessage}"`);
 
+        // Requirement 1: Detect customer language from message
+        const isHinglish = /\b(mera|kaha|kab|aayega|chahiye|nahi|hai|hoon|karo|wapas|paisa|order)\b/i.test(customerMessage);
+        const detectedLanguage = isHinglish ? 'hinglish' : 'english';
+
         const defaultResult = { 
             intent: 'order_status', 
             confidence: 0.5, 
             sentiment: 'neutral', 
             urgency: 'low', 
-            language: 'english',
+            language: detectedLanguage,
             secondary_intent: null,
             buying_signal: false,
             escalation_hint: false
@@ -212,7 +216,7 @@ Message: "${customerMessage}"`;
         // Ensure all fields exist
         result.sentiment = result.sentiment || 'neutral';
         result.urgency = result.urgency || 'low';
-        result.language = result.language || 'english';
+        result.language = detectedLanguage;
         result.secondary_intent = result.secondary_intent || null;
         result.buying_signal = !!result.buying_signal;
         result.escalation_hint = !!result.escalation_hint;
@@ -231,12 +235,16 @@ Message: "${customerMessage}"`;
         } else if (error.message.includes('timeout')) {
             console.error('[Intent] API timeout - defaulting to order_status');
         }
+        
+        const isHinglishFallback = /\b(mera|kaha|kab|aayega|chahiye|nahi|hai|hoon|karo|wapas|paisa|order)\b/i.test(customerMessage);
+        const detectedLanguageFallback = isHinglishFallback ? 'hinglish' : 'english';
+        
         return { 
             intent: 'order_status', 
             confidence: 0.5, 
             sentiment: 'neutral', 
             urgency: 'low', 
-            language: 'english',
+            language: detectedLanguageFallback,
             secondary_intent: null,
             buying_signal: false,
             escalation_hint: false
