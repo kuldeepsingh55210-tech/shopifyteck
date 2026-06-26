@@ -118,6 +118,36 @@ router.get('/callback', async (req, res) => {
                 'How long does shipping take?',
                 'Standard shipping takes 3-7 business days.'
             );
+            await ragService.addKnowledgeEntry(
+                shop,
+                'Wrong Item',
+                'I received wrong item / galat item aaya',
+                'We sincerely apologize! Please share your order number and a photo of the wrong item received. We will arrange an immediate replacement or full refund within 24 hours.'
+            );
+            await ragService.addKnowledgeEntry(
+                shop,
+                'Cancel Order',
+                'How to cancel my order / order cancel karna hai',
+                'Orders can be cancelled within 24 hours of placing. Please share your order number and we will process the cancellation immediately.'
+            );
+            await ragService.addKnowledgeEntry(
+                shop,
+                'Discount/Coupon',
+                'My coupon is not working / discount code kaam nahi kar raha',
+                'Please share the coupon code you are trying to use. Common issues: code expired, minimum order value not met, or already used. We will verify and help you right away.'
+            );
+            await ragService.addKnowledgeEntry(
+                shop,
+                'Payment Failed',
+                'My payment failed / payment nahi hui',
+                'Sorry for the inconvenience! Your money is safe — failed payments are automatically refunded in 5-7 business days. Please try again with a different payment method or contact your bank.'
+            );
+            await ragService.addKnowledgeEntry(
+                shop,
+                'Size Query',
+                'Size guide / sizing help / size kaunsa loon',
+                'Please check our size chart on the product page. For personalized help, share your measurements (chest, waist, height) and we will recommend the perfect size.'
+            );
         }
     } catch (error) {
         console.warn('[Shopify] Failed to seed default knowledge entries:', error?.message || error);

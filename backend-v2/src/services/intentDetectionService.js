@@ -33,7 +33,7 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
         }
 
         // ANGRY/FRUSTRATED DETECTION
-        const angryPatterns = /\b(pathetic|refund now|terrible|worst|horrible|furious|disgusting|useless|angry|hate|damn|hell|garbage|trash|bs|unfair)\b/i;
+        const angryPatterns = /\b(pathetic|refund now|terrible|worst|horrible|furious|disgusting|useless|angry|hate|damn|garbage|trash|bs|unfair)\b/i;
         if (angryPatterns.test(message)) {
             console.log('[Intent] Detected as angry_customer (local pattern match)');
             return { ...defaultResult, intent: 'angry_customer', confidence: 0.9, sentiment: 'angry', urgency: 'high', escalation_hint: true };
@@ -53,7 +53,11 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
         if (message.includes('where is my order') || message.includes('order status') || 
             message.includes('order kahan hai') || message.includes('status') ||
             message.includes('deliver') || message.includes('arrival') || message.includes('arrived') || 
-            (message.includes('when') && message.includes('deliver'))) {
+            (message.includes('when') && message.includes('deliver')) ||
+            message.includes('mera order kab aayega') || message.includes('order track karo') ||
+            message.includes('delivery kab hogi') || message.includes('mera parcel kahan hai') ||
+            message.includes('shipment kab aayega') || message.includes('order abhi tak nahi aaya') ||
+            message.includes('kitne din lagenge')) {
             console.log('[Intent] Detected as order_status (local pattern match)');
             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
         }
@@ -67,7 +71,8 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
 
         // CANCEL ORDER
         if (message.match(/\bcancel\b/) || message.includes('cancel order') || 
-            message.includes('cancel my order') || message.includes('order cancel karo')) {
+            message.includes('cancel my order') || message.includes('order cancel karo') ||
+            message.includes('order band karo') || message.includes('mujhe order nahi chahiye')) {
             console.log('[Intent] Detected as cancel_order (local pattern match)');
             return { ...defaultResult, intent: 'cancel_order', confidence: 0.95 };
         }
@@ -105,7 +110,9 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
 
         // REFUND REQUEST - money back
         if (message.includes('refund') || message.includes('money back') || message.includes('reimburse') ||
-            message.includes('compensation') || message.includes('return money')) {
+            message.includes('compensation') || message.includes('return money') ||
+            message.includes('paisa wapas karo') || message.includes('refund chahiye') ||
+            message.includes('mera paisa wapas do') || message.includes('paise return karo')) {
             console.log('[Intent] Detected as refund_request (local pattern match)');
             return { ...defaultResult, intent: 'refund_request', confidence: 0.9, sentiment: 'negative', urgency: 'high', escalation_hint: true };
         }

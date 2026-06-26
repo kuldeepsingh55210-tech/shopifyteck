@@ -136,7 +136,7 @@ const resolveOrder = async (req, res) => {
     const intentResult = await detectIntent(customer_message, customerContext, shop.shop_domain, ragContext);
 
     // Fallback: Hardcoded keyword check in case LLM rate-limits or misses sentiment
-    const angryKeywords = ['furious', 'worst', 'hate', 'terrible', 'horrible', 'angry', 'disgusting', 'useless', 'pathetic', 'frustrated', 'hell', 'damn'];
+    const angryKeywords = ['furious', 'worst', 'hate', 'terrible', 'horrible', 'angry', 'disgusting', 'useless', 'pathetic', 'frustrated', 'damn'];
     const messageText = customer_message.toLowerCase();
     const isAngryMessage = angryKeywords.some(word => messageText.includes(word));
     
@@ -179,6 +179,8 @@ const resolveOrder = async (req, res) => {
     let orderData = null;
     let orderLookupSkipped = false;
 
+    const isAngry = (detectedIntent === 'angry_customer' || intentResult.sentiment === 'angry');
+
     if (isPolicyQuestion) {
         console.log('[Resolve] Policy question detected, skipping order lookup');
         orderLookupSkipped = true;
@@ -186,12 +188,16 @@ const resolveOrder = async (req, res) => {
         console.log(`[Resolve] Intent "${detectedIntent}" does not require order lookup, using Knowledge Base instead`);
         orderLookupSkipped = true;
     } else if (!hasExplicitOrderNumber) {
-        console.log(`[Resolve] No explicit order number provided for order-required intent "${detectedIntent}", escalating`);
-        // For order-required intents, we need an order number
-        const ticket = await saveTicket({ shop_id, customer_email, order_number, raw_message: customer_message, detected_intent: intentResult.intent, intent_confidence: intentResult.confidence, resolution_status: 'escalated' });
-        await logAction(ticket.id, 'ESCALATED', { reason: 'order_number_required' });
-        const csat_token = Buffer.from(String(ticket.id) + shop.shop_domain).toString('base64');
-        return res.json({ success: true, resolution: 'escalated', response: 'Please provide your order number so we can help you better.', intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_number_required', language: 'english', csat_token, ticket_id: ticket.id });
+        if (isAngry) {
+            console.log(`[Resolve] No explicit order number provided for angry customer with order-required intent "${detectedIntent}", escalating`);
+            const ticket = await saveTicket({ shop_id, customer_email, order_number, raw_message: customer_message, detected_intent: intentResult.intent, intent_confidence: intentResult.confidence, resolution_status: 'escalated' });
+            await logAction(ticket.id, 'ESCALATED', { reason: 'order_number_required' });
+            const csat_token = Buffer.from(String(ticket.id) + shop.shop_domain).toString('base64');
+            return res.json({ success: true, resolution: 'escalated', response: 'Please provide your order number so we can assist you better.', intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_number_required', language: 'english', csat_token, ticket_id: ticket.id });
+        } else {
+            console.log(`[Resolve] No explicit order number provided for non-angry intent "${detectedIntent}", skipping order lookup`);
+            orderLookupSkipped = true;
+        }
     } else {
         // Step 3: Get order data - ONLY for order-required intents with explicit order number
         console.log(`[Resolve] Step 3: Fetching order data for intent "${detectedIntent}" with order number "${order_number}"...`);
@@ -199,10 +205,16 @@ const resolveOrder = async (req, res) => {
         orderData = orderDataResult.found ? orderDataResult : null;
 
         if (!orderData) {
-            const ticket = await saveTicket({ shop_id, customer_email, order_number, raw_message: customer_message, detected_intent: intentResult.intent, intent_confidence: intentResult.confidence, resolution_status: 'escalated' });
-            await logAction(ticket.id, 'ESCALATED', { reason: 'order_not_found' });
-            const csat_token = Buffer.from(String(ticket.id) + shop.shop_domain).toString('base64');
-            return res.json({ success: true, resolution: 'escalated', response: 'Order not found. Redirecting to human support.', intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_not_found', language: 'english', csat_token, ticket_id: ticket.id });
+            if (isAngry) {
+                console.log(`[Resolve] Order not found for angry customer with intent "${detectedIntent}", escalating`);
+                const ticket = await saveTicket({ shop_id, customer_email, order_number, raw_message: customer_message, detected_intent: intentResult.intent, intent_confidence: intentResult.confidence, resolution_status: 'escalated' });
+                await logAction(ticket.id, 'ESCALATED', { reason: 'order_not_found' });
+                const csat_token = Buffer.from(String(ticket.id) + shop.shop_domain).toString('base64');
+                return res.json({ success: true, resolution: 'escalated', response: 'Order not found. Redirecting to human support.', intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_not_found', language: 'english', csat_token, ticket_id: ticket.id });
+            } else {
+                console.log(`[Resolve] Order not found for non-angry intent "${detectedIntent}", skipping order lookup`);
+                orderLookupSkipped = true;
+            }
         }
     }
 
@@ -275,6 +287,14 @@ const resolveOrder = async (req, res) => {
         decision.reasoning = `Escalation threshold (${settings.escalation_threshold}) exceeded (${escalationData.probability}).`;
     }
 
+    // Ensure ONLY angry_customer (or angry sentiment) can escalate to human, otherwise fallback to auto-resolve
+    const isAngryIntent = (detectedIntent === 'angry_customer' || intentResult.sentiment === 'angry');
+    if (!isAngryIntent && (decision.action === 'escalate' || decision.action === 'flag_fraud')) {
+        console.log(`[Resolve] Overriding decision "${decision.action}" to "auto_resolve" because only angry_customer can escalate`);
+        decision.action = 'auto_resolve';
+        decision.reasoning = `Overridden to auto_resolve because intent "${detectedIntent}" is not angry_customer`;
+    }
+
     console.log('[Resolve] Final decision before routing:', decision.action, 'isPolicyQuestion:', isPolicyQuestion);
     const reasoningContextStr = reasoningService.buildReasoningContext(customerMemory, orderData, intentResult.intent, intentResult.sentiment, escalationData.probability);
 
@@ -316,7 +336,39 @@ const resolveOrder = async (req, res) => {
     } else if (decision.action === 'auto_resolve') {
         if (isPolicyQuestion || orderLookupSkipped) {
             console.log('[Resolve] General inquiry or policy question - skipping action engine');
-            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain);
+            let customInstructions = [reasoningContextStr];
+            if (intentRequiresOrder) {
+                if (!hasExplicitOrderNumber) {
+                    let alreadyAsked = false;
+                    try {
+                        const lastConversations = await db.query(
+                            `SELECT message, ai_response, intent, resolution 
+                             FROM conversation_history 
+                             WHERE shop_domain = $1 AND customer_email = $2 
+                             ORDER BY created_at DESC 
+                             LIMIT 1`,
+                            [shop.shop_domain, customer_email]
+                        );
+                        if (lastConversations.rows.length > 0) {
+                            const lastAiResponse = (lastConversations.rows[0].ai_response || '').toLowerCase();
+                            if (lastAiResponse.includes('order number') || lastAiResponse.includes('order no') || lastAiResponse.includes('provide your order') || lastAiResponse.includes('order #')) {
+                                alreadyAsked = true;
+                            }
+                        }
+                    } catch (dbError) {
+                        console.error('[Resolve] Error checking conversation history:', dbError.message);
+                    }
+
+                    if (alreadyAsked) {
+                        customInstructions.push("The customer did not provide an order number again, even though we already asked for it in the previous message. Say something different this time to remind them politely, such as: 'I still need your order number to check the status.'");
+                    } else {
+                        customInstructions.push("The customer did not provide an order number. Politely ask them to provide their order number so we can look up their order.");
+                    }
+                } else if (!orderData) {
+                    customInstructions.push(`We could not find any order with order number "${order_number}" in our system. Inform the customer politely that their order "${order_number}" was not found and ask them to verify the order number.`);
+                }
+            }
+            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain);
         } else {
             finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain);
             

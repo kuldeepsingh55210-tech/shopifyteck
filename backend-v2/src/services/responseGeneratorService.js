@@ -55,7 +55,8 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
             customerMessage, 
             intent, 
             ragContext, 
-            shopDomain
+            shopDomain,
+            customPromptFlags
         );
         if (groqResponse) {
             console.log('[Response] Groq API success!');

@@ -4,8 +4,13 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-const generateGroqResponse = async (customerMessage, intent, ragContext, shopDomain) => {
+const generateGroqResponse = async (customerMessage, intent, ragContext, shopDomain, customPromptFlags = []) => {
   try {
+    let customInstructionsText = '';
+    if (customPromptFlags && customPromptFlags.length > 0) {
+      customInstructionsText = '\n\nCUSTOM INSTRUCTIONS & REASONING:\n' + customPromptFlags.map(f => `- ${f}`).join('\n');
+    }
+
     const systemPrompt = `You are ORYQX, an AI customer support agent for a Shopify store.
     
 Your job is to help customers with their queries professionally and helpfully.
@@ -20,7 +25,7 @@ RULES:
 - For order status queries without order number, ask for order number politely
 - For general queries, give helpful answers from knowledge base
 - Keep responses under 3 sentences
-- Never make up information you don't have`;
+- Never make up information you don't have${customInstructionsText}`;
 
     const completion = await groq.chat.completions.create({
       messages: [
