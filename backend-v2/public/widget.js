@@ -402,7 +402,11 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'oryqx-msg-bubble';
-    bubble.textContent = text; // Prevent XSS by using textContent
+    let messageText = text;
+    if (sender === 'customer') {
+      messageText = messageText.replace(/^["']|["']$/g, '').trim();
+    }
+    bubble.textContent = messageText; // Prevent XSS by using textContent
     row.appendChild(bubble);
 
     if (escalated) {
@@ -462,7 +466,11 @@
   }
 
   async function handleSend() {
-    const text = messageInput.value.trim();
+    let text = messageInput.value.trim();
+    if (!text) return;
+
+    // Strip quotes from message BEFORE sending to backend API
+    text = text.replace(/^["']|["']$/g, '').trim();
     if (!text) return;
 
     messageInput.value = '';
