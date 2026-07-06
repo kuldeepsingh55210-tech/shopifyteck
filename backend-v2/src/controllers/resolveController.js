@@ -26,6 +26,15 @@ const resolveOrder = async (req, res) => {
         order_number = 'NONE';
     }
 
+    // Extract order number from message if not explicitly passed
+    if (order_number === 'NONE') {
+        const orderMatch = customer_message.match(/#([a-zA-Z0-9-_]+)/) || customer_message.match(/\b(\d{4,})\b/);
+        if (orderMatch) {
+            order_number = '#' + orderMatch[1];
+            console.log(`[Resolve] Extracted order number from message: ${order_number}`);
+        }
+    }
+
     // Fetch shop from DB
     const shopResult = await db.query('SELECT * FROM shops WHERE id = $1 AND is_active = true', [shop_id]);
     if (shopResult.rows.length === 0) {
@@ -218,6 +227,54 @@ const resolveOrder = async (req, res) => {
         }
     }
 
+    let orderDataInstruction = '';
+    let fulfillmentStatusRules = '';
+    if (orderData) {
+        // Format products list
+        const productsStr = (orderData.line_items || []).map(item => `${item.title} x${item.quantity}`).join(', ');
+        
+        // Format order date
+        let orderDateStr = 'N/A';
+        if (orderData.created_at) {
+            try {
+                const date = new Date(orderData.created_at);
+                orderDateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            } catch (e) {
+                orderDateStr = orderData.created_at;
+            }
+        }
+        
+        // Format estimated delivery
+        let estDeliveryStr = orderData.estimated_delivery || 'N/A';
+        if (orderData.estimated_delivery) {
+            try {
+                const date = new Date(orderData.estimated_delivery);
+                estDeliveryStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            } catch (e) {}
+        }
+
+        orderDataInstruction = `REAL ORDER DATA FROM SHOPIFY:
+Order Number: ${orderData.order_number}
+Status: ${orderData.fulfillment_status}
+Carrier: ${orderData.tracking_company || 'N/A'}
+Tracking: ${orderData.tracking_number || 'N/A'}
+Expected Delivery: ${estDeliveryStr}
+Products: ${productsStr}
+Order Date: ${orderDateStr}
+
+USE THIS EXACT DATA in your response.
+DO NOT make up any information.
+DO NOT say 'processing' if status is 'shipped'.
+ALWAYS mention tracking number if available.`;
+
+        fulfillmentStatusRules = `FULFILLMENT STATUS RULES:
+- If status is 'unfulfilled' → Respond with: "Your order is being prepared"
+- If status is 'partial' → Respond with: "Part of your order has shipped" (mention tracking if available)
+- If status is 'shipped' or 'fulfilled' → Respond with: "Your order has shipped. Tracking: [tracking_number]"
+- If status is 'delivered' → Respond with: "Your order was delivered on [date]"
+- If status is 'cancelled' → Respond with: "Your order has been cancelled"`;
+    }
+
     let decision = null;
     let escalationData = null;
     let eligibility = null;
@@ -316,7 +373,13 @@ const resolveOrder = async (req, res) => {
     let finalResponse = '';
 
     if (decision.action === 'escalate') {
-        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "You must escalate this ticket. Respond empathetically and inform the customer that a human agent will assist them shortly."], ragContext, shop.shop_domain, intentResult.language);
+        const customInstructions = [reasoningContextStr];
+        if (orderDataInstruction) {
+            customInstructions.push(orderDataInstruction);
+            customInstructions.push(fulfillmentStatusRules);
+        }
+        customInstructions.push("You must escalate this ticket. Respond empathetically and inform the customer that a human agent will assist them shortly.");
+        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
         // Escalate action
         await actionService.escalateToHuman(shop.shop_domain, null, customer_email, decision.reasoning, 'high'); // ticketId updated later
         await actionService.sendEmailNotification(shop.shop_domain, customer_email, 'Your ticket has been escalated', 'A support agent will contact you within 2 hours.');
@@ -329,7 +392,13 @@ const resolveOrder = async (req, res) => {
             }
         }
     } else if (decision.action === 'flag_fraud') {
-        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "SECURITY ALERT: High fraud risk. Do not approve requests. Politely inform the customer that their request requires manual verification by our security team."], ragContext, shop.shop_domain, intentResult.language);
+        const customInstructions = [reasoningContextStr];
+        if (orderDataInstruction) {
+            customInstructions.push(orderDataInstruction);
+            customInstructions.push(fulfillmentStatusRules);
+        }
+        customInstructions.push("SECURITY ALERT: High fraud risk. Do not approve requests. Politely inform the customer that their request requires manual verification by our security team.");
+        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
         // Fraud flag escalation
         await actionService.escalateToHuman(shop.shop_domain, null, customer_email, 'Fraud flag triggered', 'high');
         await actionService.logAction(shop.shop_domain, customer_email, null, 'fraud_flag', { reason: 'Triggered by high refund count' }, true);
@@ -337,6 +406,10 @@ const resolveOrder = async (req, res) => {
         if (isPolicyQuestion || orderLookupSkipped) {
             console.log('[Resolve] General inquiry or policy question - skipping action engine');
             let customInstructions = [reasoningContextStr];
+            if (orderDataInstruction) {
+                customInstructions.push(orderDataInstruction);
+                customInstructions.push(fulfillmentStatusRules);
+            }
             if (intentRequiresOrder) {
                 if (!hasExplicitOrderNumber) {
                     let alreadyAsked = false;
@@ -370,7 +443,12 @@ const resolveOrder = async (req, res) => {
             }
             finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
         } else {
-            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr], ragContext, shop.shop_domain, intentResult.language);
+            const customInstructions = [reasoningContextStr];
+            if (orderDataInstruction) {
+                customInstructions.push(orderDataInstruction);
+                customInstructions.push(fulfillmentStatusRules);
+            }
+            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
             
             // Execute specific actions based on intent
             if (intentResult.intent === 'refund_request' && eligibility.eligible === true) {
@@ -400,7 +478,13 @@ const resolveOrder = async (req, res) => {
         // Generate response asking for more info
         // Set ticket status to 'resolved' NOT 'escalated'
         console.log('[Resolve] collect_info → auto resolving with info request');
-        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, [reasoningContextStr, "We need more information. Ask the customer for details required to process their request."], ragContext, shop.shop_domain, intentResult.language);
+        const customInstructions = [reasoningContextStr];
+        if (orderDataInstruction) {
+            customInstructions.push(orderDataInstruction);
+            customInstructions.push(fulfillmentStatusRules);
+        }
+        customInstructions.push("We need more information. Ask the customer for details required to process their request.");
+        finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
     }
 
     // Step 6: Save reasoning log

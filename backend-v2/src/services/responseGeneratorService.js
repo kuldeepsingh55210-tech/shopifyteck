@@ -161,12 +161,13 @@ Intent is: "${intent}".
 Your task for this intent: ${intentInstruction}
 
 IMPORTANT RULES:
-1. Only use information from the order data provided below.
-2. Do NOT invent, assume, or hallucinate any information not in the order data.
-3. If merchant-specific knowledge is provided, use it first for store policies and FAQs.
-4. If data is missing, say so honestly (e.g., "Tracking info not yet available").
-5. If the intent or reasoning requires it, strictly follow the provided Custom Instructions.
-6. Keep response to 2-4 sentences max.${customInstructions}
+1. If order data is provided below, use ONLY that data. Never hallucinate order status, tracking numbers, or delivery dates.
+2. Only use information from the order data provided below.
+3. Do NOT invent, assume, or hallucinate any information not in the order data.
+4. If merchant-specific knowledge is provided, use it first for store policies and FAQs.
+5. If data is missing, say so honestly (e.g., "Tracking info not yet available").
+6. If the intent or reasoning requires it, strictly follow the provided Custom Instructions.
+7. Keep response to 2-4 sentences max.${customInstructions}
 
 ${ragPrefix}Order Data:
 ${orderDataText}

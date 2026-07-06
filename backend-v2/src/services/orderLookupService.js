@@ -33,7 +33,7 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
                 params: {
                     status: 'any',
                     limit: 250,
-                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items'
+                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer'
                 },
                 headers: { 'X-Shopify-Access-Token': accessToken },
                 timeout: 10000
@@ -70,6 +70,9 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
 
         const fulfillment = matchingOrder.fulfillments?.[0];
         const lineItems = matchingOrder.line_items || [];
+        const customerName = matchingOrder.customer ? 
+            `${matchingOrder.customer.first_name || ''} ${matchingOrder.customer.last_name || ''}`.trim() : 
+            null;
 
         return {
             found: true,
@@ -77,12 +80,16 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
             fulfillment_status: matchingOrder.fulfillment_status || 'unfulfilled',
             financial_status: matchingOrder.financial_status || 'pending',
             tracking_number: fulfillment?.tracking_number || null,
+            tracking_company: fulfillment?.tracking_company || null,
             carrier: fulfillment?.tracking_company || null,
+            tracking_url: fulfillment?.tracking_url || null,
             estimated_delivery: fulfillment?.estimated_delivery || null,
             line_items: lineItems.map(item => ({
                 title: item.title,
                 quantity: item.quantity
-            }))
+            })),
+            created_at: matchingOrder.created_at || null,
+            customer_name: customerName
         };
 
     } catch (error) {
