@@ -253,8 +253,10 @@ const resolveOrder = async (req, res) => {
             } catch (e) {}
         }
 
+        const orderNo = orderData.order_number.startsWith('#') ? orderData.order_number : '#' + orderData.order_number;
+
         orderDataInstruction = `REAL ORDER DATA FROM SHOPIFY:
-Order Number: ${orderData.order_number}
+Order Number: ${orderNo}
 Status: ${orderData.fulfillment_status}
 Carrier: ${orderData.tracking_company || 'N/A'}
 Tracking: ${orderData.tracking_number || 'N/A'}
@@ -268,7 +270,7 @@ DO NOT say 'processing' if status is 'shipped'.
 ALWAYS mention tracking number if available.`;
 
         fulfillmentStatusRules = `FULFILLMENT STATUS RULES:
-- If status is 'unfulfilled' → Respond with: "Your order is being prepared"
+- If status is 'unfulfilled' → Respond with: "Your order ${orderNo} has been confirmed and is currently being prepared for shipment. We will send you tracking details once it ships."
 - If status is 'partial' → Respond with: "Part of your order has shipped" (mention tracking if available)
 - If status is 'shipped' or 'fulfilled' → Respond with: "Your order has shipped. Tracking: [tracking_number]"
 - If status is 'delivered' → Respond with: "Your order was delivered on [date]"
