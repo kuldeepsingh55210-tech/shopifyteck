@@ -65,3 +65,49 @@ export async function authedFetch(url: string, options: RequestInit = {}): Promi
 
   return response;
 }
+
+/**
+ * Performs Token Exchange authentication flow with backend.
+ * Retrieves session token from App Bridge and sends { sessionToken, shop } to POST /shopify/token-exchange
+ */
+export async function performTokenExchange(shopDomain?: string): Promise<boolean> {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const shop = shopDomain || params.get('shop') || localStorage.getItem('shop_domain') || '';
+    if (!shop) {
+      console.warn('[Shopify Auth] Token exchange skipped: missing shop domain parameter');
+      return false;
+    }
+
+    const cleanShop = shop.trim().replace(/^https?:\/\//, '');
+    const sessionToken = await getSessionToken();
+    if (!sessionToken) {
+      console.warn('[Shopify Auth] Token exchange skipped: no session token obtained from App Bridge');
+      return false;
+    }
+
+    const response = await fetch(`${API_URL}/shopify/token-exchange`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sessionToken,
+        shop: cleanShop
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[Shopify Auth] Token exchange request failed:', response.status, errorData);
+      return false;
+    }
+
+    const data = await response.json();
+    console.log('[Shopify Auth] Token exchange completed successfully:', data);
+    return true;
+  } catch (err) {
+    console.error('[Shopify Auth] Token exchange error:', err);
+    return false;
+  }
+}

@@ -103,6 +103,86 @@ router.get('/callback', async (req, res) => {
     const shopId = shopResult.rows[0]?.id;
     console.log(`[Shopify OAuth] Shop installed: ${shop} (ID: ${shopId})`);
 
+    // Seed default KB & Canned responses for new shops
+    await seedDefaultShopData(shop);
+
+    // Redirect to frontend with both shop domain and host (enabling Shopify App Bridge in iframe)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    const hostParam = req.query.host ? `&host=${encodeURIComponent(req.query.host)}` : '';
+    res.redirect(`${frontendUrl}/?shop=${shop}${hostParam}`);
+});
+
+// Step 2.5: Token Exchange Endpoint
+router.post('/token-exchange', async (req, res) => {
+    const { sessionToken, shop } = req.body;
+
+    if (!sessionToken || !shop) {
+        return res.status(400).json({ error: 'Missing required parameters: sessionToken and shop' });
+    }
+
+    // Validate shop domain format
+    if (!shop.match(/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/)) {
+        return res.status(400).json({ error: 'Invalid shop domain. Must be a valid myshopify.com domain.' });
+    }
+
+    // Exchange session token for access token via Shopify token exchange endpoint
+    let accessToken;
+    try {
+        const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
+            client_id: process.env.SHOPIFY_API_KEY,
+            client_secret: process.env.SHOPIFY_API_SECRET,
+            grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+            subject_token: sessionToken,
+            subject_token_type: 'urn:ietf:params:oauth:token-type:id_token',
+            requested_token_type: 'urn:ietf:params:oauth:token-type:offline_access_token'
+        });
+
+        if (!tokenResponse.data?.access_token) {
+            console.error('[OAuth] Token exchange returned empty token');
+            return res.status(500).json({ error: 'Failed to obtain access token from Shopify' });
+        }
+
+        accessToken = tokenResponse.data.access_token;
+    } catch (tokenError) {
+        console.error('[OAuth] Token exchange failed:', tokenError.response?.data || tokenError.message);
+        return res.status(500).json({ error: 'OAuth token exchange failed. Please check credentials or session token.' });
+    }
+
+    const encryptedToken = encryptToken(accessToken);
+
+    // Insert or update shop
+    await db.query(
+        `INSERT INTO shops (shop_domain, access_token, is_active)
+         VALUES ($1, $2, true)
+         ON CONFLICT (shop_domain)
+         DO UPDATE SET access_token = $2, is_active = true, updated_at = NOW()`,
+        [shop, encryptedToken]
+    );
+
+    // Get the shop_id
+    const shopResult = await db.query(
+        'SELECT id FROM shops WHERE shop_domain = $1',
+        [shop]
+    );
+
+    const shopId = shopResult.rows[0]?.id;
+    console.log(`[Shopify Token Exchange] Shop installed: ${shop} (ID: ${shopId})`);
+
+    // Seed default KB & Canned responses for new shops
+    await seedDefaultShopData(shop);
+
+    return res.status(200).json({
+        success: true,
+        shop,
+        shopId,
+        message: 'Token exchange successful'
+    });
+});
+
+/**
+ * Helper function to seed default knowledge base entries and canned responses for a shop
+ */
+async function seedDefaultShopData(shop) {
     try {
         const existing = await db.query('SELECT id FROM merchant_knowledge_base WHERE shop_domain = $1 LIMIT 1', [shop]);
         if (existing.rows.length === 0) {
@@ -191,12 +271,7 @@ router.get('/callback', async (req, res) => {
     } catch (cannedError) {
         console.warn('[Canned] Failed to seed default canned responses:', cannedError?.message || cannedError);
     }
-
-    // Redirect to frontend with both shop domain and host (enabling Shopify App Bridge in iframe)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-    const hostParam = req.query.host ? `&host=${encodeURIComponent(req.query.host)}` : '';
-    res.redirect(`${frontendUrl}/?shop=${shop}${hostParam}`);
-});
+}
 
 // Step 3: Register webhooks
 router.post('/webhooks/register', registerWebhooks);

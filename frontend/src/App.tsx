@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './app/components/Sidebar';
 import { Topbar } from './app/components/Topbar';
 import { Dashboard } from './app/components/pages/Dashboard';
@@ -9,7 +9,7 @@ import { Settings } from './app/components/pages/Settings';
 import { Onboarding } from './app/components/pages/Onboarding';
 import { Pricing } from './app/components/pages/Pricing';
 import { Loader2 } from 'lucide-react';
-import { authedFetch } from './lib/shopifyAuth';
+import { authedFetch, performTokenExchange } from './lib/shopifyAuth';
 const fetch = authedFetch;
 
 interface Ticket {
@@ -531,6 +531,12 @@ function App() {
       try {
         setShopChecking(true);
         setShopError('');
+
+        // Attempt Shopify Token Exchange with backend on load
+        await performTokenExchange(cleanShop).catch(tokenErr => {
+          console.error('[Shop Init] Token exchange error:', tokenErr);
+        });
+
         const res = await fetch(`${API_URL}/api/shops?domain=${encodeURIComponent(cleanShop)}`);
         if (res.ok) {
           const shopData = await res.json();
