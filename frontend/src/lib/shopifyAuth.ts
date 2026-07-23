@@ -3,34 +3,57 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 /**
  * Gets a fresh session token from Shopify App Bridge.
  * Supports App Bridge v4 function call directly, or v3 fallback get() method.
+ * Retries up to 5 times with 300ms delay if window.shopify is not yet initialized.
  */
 export async function getSessionToken(): Promise<string> {
-  if (typeof window !== 'undefined' && (window as any).shopify) {
-    const shopify = (window as any).shopify;
+  const MAX_RETRIES = 5;
+  const RETRY_DELAY_MS = 300;
 
-    // 1. Direct function call (App Bridge v4+)
-    if (typeof shopify.idToken === 'function') {
-      try {
-        const token = await shopify.idToken();
-        if (token) return token;
-      } catch (err) {
-        console.warn('[Shopify Auth] Failed to retrieve session token via direct idToken():', err);
-      }
+  // Wait for window.shopify to be available, retrying up to MAX_RETRIES times
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    if (typeof window !== 'undefined' && (window as any).shopify) {
+      break; // App Bridge is ready — proceed
     }
-
-    // 2. Object with .get() method (Legacy/Compatibility)
-    if (shopify.idToken && typeof shopify.idToken.get === 'function') {
-      try {
-        const token = await shopify.idToken.get();
-        if (token) return token;
-      } catch (err) {
-        console.warn('[Shopify Auth] Failed to retrieve session token via idToken.get():', err);
-      }
+    console.log(`[Shopify Auth] window.shopify not yet available. Attempt ${attempt}/${MAX_RETRIES}, retrying in ${RETRY_DELAY_MS}ms...`);
+    if (attempt === MAX_RETRIES) {
+      console.warn('[Shopify Auth] window.shopify unavailable after all retries. App Bridge may not be initialized.');
+      return '';
     }
-
-    throw new Error('Shopify App Bridge idToken API not available');
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
   }
-  return '';
+
+  const shopify = (window as any).shopify;
+  console.log('[Shopify Auth] window.shopify is available:', !!shopify);
+
+  // 1. Direct function call (App Bridge v4+)
+  if (typeof shopify.idToken === 'function') {
+    try {
+      console.log('[Shopify Auth] Attempting token retrieval via shopify.idToken()...');
+      const token = await shopify.idToken();
+      if (token) {
+        console.log(`[Shopify Auth] Session token retrieved via idToken(). Token length: ${token.length} chars (valid JWT is typically 800+)`);
+        return token;
+      }
+    } catch (err) {
+      console.warn('[Shopify Auth] Failed to retrieve session token via direct idToken():', err);
+    }
+  }
+
+  // 2. Object with .get() method (Legacy/Compatibility)
+  if (shopify.idToken && typeof shopify.idToken.get === 'function') {
+    try {
+      console.log('[Shopify Auth] Attempting token retrieval via shopify.idToken.get()...');
+      const token = await shopify.idToken.get();
+      if (token) {
+        console.log(`[Shopify Auth] Session token retrieved via idToken.get(). Token length: ${token.length} chars (valid JWT is typically 800+)`);
+        return token;
+      }
+    } catch (err) {
+      console.warn('[Shopify Auth] Failed to retrieve session token via idToken.get():', err);
+    }
+  }
+
+  throw new Error('Shopify App Bridge idToken API not available');
 }
 
 /**
@@ -86,6 +109,7 @@ export async function performTokenExchange(shopDomain?: string): Promise<boolean
       return false;
     }
 
+    console.log(`[Shopify Auth] Initiating token exchange — shop: ${cleanShop}, sessionToken length: ${sessionToken.length} chars`);
     const response = await fetch(`${API_URL}/shopify/token-exchange`, {
       method: 'POST',
       headers: {
