@@ -108,7 +108,7 @@ const buildReasoningContext = (customerMemory, orderData, intent, sentiment, esc
 - Respond in: ${customerMemory?.language_preference || 'english'}`;
 };
 
-const makeDecision = (intent, eligibility, escalationData, customerMemory, customerMessage = '') => {
+const makeDecision = (intent, eligibility, escalationData, customerMemory, customerMessage = '', orderData = null) => {
     let action = 'collect_info';
     let reasoning = '';
     const normalizedMessage = (customerMessage || '').toLowerCase();
@@ -125,6 +125,21 @@ const makeDecision = (intent, eligibility, escalationData, customerMemory, custo
             workflow: intent
         };
     }
+
+    // Early-exit: order_status / shipping_status with fetched order data — auto-resolve directly
+    if ((intent === 'order_status' || intent === 'shipping_status') && orderData) {
+        action = 'auto_resolve';
+        reasoning = 'Order data found, providing status directly to customer';
+        console.log(`[Reasoning] Order status intent with order data — auto-resolving: ${reasoning}`);
+        return {
+            action,
+            confidence: 0.95,
+            reasoning,
+            workflow: intent
+        };
+    }
+
+    // order_status / shipping_status without orderData — fall through to collect_info below
 
     if (escalationData.should_escalate === true) {
         action = 'escalate';

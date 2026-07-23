@@ -304,7 +304,7 @@ ALWAYS mention tracking number if available.`;
         }
 
         escalationData = reasoningService.calculateEscalationProbability(customerMemory, intentResult.intent, intentResult.sentiment);
-        decision = reasoningService.makeDecision(intentResult.intent, eligibility, escalationData, customerMemory, customer_message);
+        decision = reasoningService.makeDecision(intentResult.intent, eligibility, escalationData, customerMemory, customer_message, orderData);
     }
 
     // Add custom memory rule forcing angry sentiment to escalation
