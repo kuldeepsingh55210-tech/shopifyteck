@@ -5,7 +5,6 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
     try {
         console.log(`[Intent] Detecting intent for: "${customerMessage}"`);
 
-        // Requirement 1: Detect customer language from message (English-only mode)
         const detectedLanguage = 'english';
 
         const defaultResult = { 
@@ -19,23 +18,29 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             escalation_hint: false
         };
 
-        // Input validation
         if (!customerMessage || customerMessage.trim().length === 0) {
             console.warn('[Intent] Empty message provided, defaulting to order_status');
             return defaultResult;
         }
 
-        // Quick local intent detection for common patterns - highly accurate and fast
         const message = customerMessage.toLowerCase();
 
-        // GREETING DETECTION
         if (message.match(/^(hi|hello|hey|greetings|namaste|hola|salaam|howdy|hii|hiiii|heyy|sup)\b/) ||
             message.match(/\b(hi there|hello there|hey there)\b/)) {
             console.log('[Intent] Detected as greeting (local pattern match)');
             return { ...defaultResult, intent: 'greeting', confidence: 0.95, sentiment: 'positive', urgency: 'low' };
         }
 
-        // ANGRY/FRUSTRATED DETECTION
+        const trimmedMessage = customerMessage.trim();
+        const looksLikeBareOrderNumber =
+            /^#?[a-zA-Z0-9-]{3,}$/.test(trimmedMessage) &&
+            /\d/.test(trimmedMessage) &&
+            !trimmedMessage.includes(' ');
+        if (looksLikeBareOrderNumber) {
+            console.log('[Intent] Detected as order_status (bare order-number reply pattern match)');
+            return { ...defaultResult, intent: 'order_status', confidence: 0.9, urgency: 'medium' };
+        }
+
         const angryPatterns = /\b(pathetic|refund now|terrible|worst|horrible|furious|disgusting|useless|angry|hate|damn|garbage|trash|bs|unfair)\b/i;
         if (angryPatterns.test(message)) {
             console.log('[Intent] Detected as angry_customer (local pattern match)');
@@ -65,14 +70,12 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
         }
 
-        // WRONG ITEM
         if (message.includes('wrong item') || message.includes('incorrect item') || 
             message.includes('wrong product') || message.includes('galat item')) {
             console.log('[Intent] Detected as wrong_item (local pattern match)');
             return { ...defaultResult, intent: 'wrong_item', confidence: 0.95 };
         }
 
-        // CANCEL ORDER
         if (message.match(/\bcancel\b/) || message.includes('cancel order') || 
             message.includes('cancel my order') || message.includes('order cancel karo') ||
             message.includes('order band karo') || message.includes('mujhe order nahi chahiye')) {
@@ -80,7 +83,6 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'cancel_order', confidence: 0.95 };
         }
 
-        // DISCOUNT ISSUE
         if (message.includes('coupon') || message.includes('discount') || 
             message.includes('promo code') || message.includes('code not working') || 
             message.includes('coupon invalid')) {
@@ -88,7 +90,6 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'discount_issue', confidence: 0.95 };
         }
 
-        // PAYMENT ISSUE
         if (message.includes('payment failed') || message.includes('payment not working') || 
             message.includes('transaction failed') || message.includes('amount deducted') || 
             message.includes('charged twice')) {
@@ -96,7 +97,6 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'payment_issue', confidence: 0.95, urgency: 'medium' };
         }
 
-        // SIZE QUERY
         if (message.includes('size') || message.includes('sizing') || 
             message.includes('which size') || message.includes('size guide') || 
             message.includes('measurements') || message.match(/\b(fit|fits)\b/)) {
@@ -104,14 +104,12 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'size_query', confidence: 0.95 };
         }
 
-        // EXCHANGE REQUEST - product return/exchange (NOT money refund)
         if (message.match(/\b(exchange|replace|send.*back|defective|damage|damaged|broken)\b/i) &&
             !message.includes('refund') && !message.includes('money back')) {
             console.log('[Intent] Detected as exchange_request (local pattern match)');
             return { ...defaultResult, intent: 'exchange_request', confidence: 0.9, urgency: 'medium' };
         }
 
-        // REFUND REQUEST - money back
         if (message.includes('refund') || message.includes('money back') || message.includes('reimburse') ||
             message.includes('compensation') || message.includes('return money') ||
             message.includes('paisa wapas karo') || message.includes('refund chahiye') ||
@@ -125,7 +123,6 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'general_inquiry', confidence: 0.85 };
         }
 
-        // Fall back to API for ambiguous cases
         console.log('[Intent] No pattern match, calling Gemini API for classification');
 
         const rateLimiter = require('./rateLimiterService');
@@ -179,7 +176,6 @@ Message: "${customerMessage}"`;
             new Promise((_, reject) => setTimeout(() => reject(new Error('Intent detection timeout')), 5000))
         ]);
 
-        // Validate API response
         if (!apiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
             console.warn('[Intent] Invalid API response, defaulting to order_status');
             return defaultResult;
@@ -188,7 +184,6 @@ Message: "${customerMessage}"`;
         const text = apiResponse.data.candidates[0].content.parts[0].text;
         console.log(`[Intent] Raw API response: "${text}"`);
 
-        // Clean JSON
         const clean = text
             .replace(/```json\n?/g, '')
             .replace(/```\n?/g, '')
@@ -196,7 +191,6 @@ Message: "${customerMessage}"`;
             .replace(/```$/g, '')
             .trim();
 
-        // Parse with error handling
         let result;
         try {
             result = JSON.parse(clean);
@@ -206,13 +200,11 @@ Message: "${customerMessage}"`;
             return { ...defaultResult, intent: 'general_inquiry' };
         }
 
-        // Validate result
         if (!result.intent || result.confidence === undefined) {
             console.warn('[Intent] Missing intent or confidence in API response');
             return { ...defaultResult, intent: 'general_inquiry' };
         }
         
-        // Ensure all fields exist
         result.sentiment = result.sentiment || 'neutral';
         result.urgency = result.urgency || 'low';
         result.language = detectedLanguage;
