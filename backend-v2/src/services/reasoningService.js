@@ -39,7 +39,7 @@ const evaluateCancellationEligibility = (orderData, customerMemory) => {
     try {
         console.log(`[Reasoning] Evaluating cancellation eligibility for order ${orderData?.id}`);
         if (!orderData) {
-            return { eligible: true, reason: 'Manual review required' };
+            return { eligible: false, reason: 'Order not found, cannot verify cancellation eligibility' };
         }
 
         if (orderData.fulfillment_status === 'fulfilled') {

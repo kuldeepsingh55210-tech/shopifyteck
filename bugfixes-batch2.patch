@@ -1,0 +1,197 @@
+diff --git a/backend-v2/src/controllers/resolveController.js b/backend-v2/src/controllers/resolveController.js
+index 9969218..b656740 100644
+--- a/backend-v2/src/controllers/resolveController.js
++++ b/backend-v2/src/controllers/resolveController.js
+@@ -167,7 +167,6 @@ const resolveOrder = async (req, res) => {
+         'general_inquiry',
+         'product_query',
+         'wrong_item',
+-        'cancel_order',
+         'discount_issue',
+         'payment_issue',
+         'size_query'
+@@ -181,7 +180,7 @@ const resolveOrder = async (req, res) => {
+ 
+     // Helper function to check if intent requires order lookup
+     const doesIntentRequireOrder = (intent) => {
+-        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request', 'address_change'];
++        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request', 'address_change', 'cancel_order'];
+         return orderRequiredIntents.includes(intent);
+     };
+ 
+diff --git a/backend-v2/src/services/actionService.js b/backend-v2/src/services/actionService.js
+index 38a6412..cfb0e09 100644
+--- a/backend-v2/src/services/actionService.js
++++ b/backend-v2/src/services/actionService.js
+@@ -15,25 +15,41 @@ const createRefund = async (shopDomain, orderId, reason) => {
+     try {
+         console.log(`[Action] Executing: createRefund for ${shopDomain}, order ${orderId}`);
+         const token = await getShopToken(shopDomain);
+-        
++        const headers = { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' };
++        const baseUrl = `https://${shopDomain}/admin/api/2024-01/orders/${orderId}`;
++
++        // Fetch the order's real line items so we can request a genuine full refund
++        // (an empty transactions array would report "success" without moving any money).
++        const orderResp = await axios.get(`${baseUrl}.json`, { headers });
++        const order = orderResp.data.order;
++        const refundLineItems = (order.line_items || []).map(item => ({
++            line_item_id: item.id,
++            quantity: item.quantity,
++            restock_type: 'no_restock'
++        }));
++
++        // Let Shopify calculate the correct refund transactions for a full refund
++        const calcResp = await axios.post(
++            `${baseUrl}/refunds/calculate.json`,
++            { refund: { refund_line_items: refundLineItems, shipping: { full_refund: true } } },
++            { headers }
++        );
++        const suggestedTransactions = calcResp.data.refund.transactions || [];
++
+         const response = await axios.post(
+-            `https://${shopDomain}/admin/api/2024-01/orders/${orderId}/refunds.json`,
++            `${baseUrl}/refunds.json`,
+             {
+                 refund: {
+                     note: reason,
+                     notify: true,
+-                    shipping: { full_refund: false },
+-                    transactions: []
++                    shipping: { full_refund: true },
++                    refund_line_items: refundLineItems,
++                    transactions: suggestedTransactions
+                 }
+             },
+-            {
+-                headers: {
+-                    'X-Shopify-Access-Token': token,
+-                    'Content-Type': 'application/json'
+-                }
+-            }
++            { headers }
+         );
+-        
++
+         console.log(`[Action] Shopify API result: success`);
+         return { success: true, refund_id: response.data.refund.id };
+     } catch (error) {
+diff --git a/backend-v2/src/services/emailService.js b/backend-v2/src/services/emailService.js
+index 23c2c97..3eb5bbb 100644
+--- a/backend-v2/src/services/emailService.js
++++ b/backend-v2/src/services/emailService.js
+@@ -1,27 +1,59 @@
+ const nodemailer = require('nodemailer');
+ 
++const isSmtpConfigured = () => {
++    return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
++};
++
++let cachedTransporter = null;
+ const createTransporter = () => {
+-    // Return a dummy object since we are mocking email sending
+-    return {
+-        sendMail: async (options) => {
+-            console.log(`[Email] [MOCKED sendMail] Direct call to dummy transporter`);
+-            return { messageId: `dummy-id-${Date.now()}` };
+-        }
+-    };
++    if (!isSmtpConfigured()) {
++        return {
++            sendMail: async (options) => {
++                console.log(`[Email] [MOCKED sendMail] SMTP not configured - would have sent to ${options.to}`);
++                return { messageId: `mocked-${Date.now()}` };
++            }
++        };
++    }
++
++    if (!cachedTransporter) {
++        cachedTransporter = nodemailer.createTransport({
++            host: process.env.SMTP_HOST,
++            port: Number(process.env.SMTP_PORT) || 465,
++            secure: Number(process.env.SMTP_PORT) === 587 ? false : true,
++            auth: {
++                user: process.env.SMTP_USER,
++                pass: process.env.SMTP_PASS
++            }
++        });
++    }
++    return cachedTransporter;
+ };
+ 
+ const sendEmail = async (to, subject, html) => {
+     try {
+-        console.log('=================== [MOCKED EMAIL OUTBOX] ===================');
+-        console.log(`To:      ${to}`);
+-        console.log(`Subject: ${subject}`);
+-        console.log('Body:');
+-        console.log(html);
+-        console.log('============================================================');
+-        
+-        return { success: true, messageId: `mocked-smtp-${Date.now()}` };
++        if (!isSmtpConfigured()) {
++            console.warn('=================== [SMTP NOT CONFIGURED - EMAIL NOT SENT] ===================');
++            console.warn(`To:      ${to}`);
++            console.warn(`Subject: ${subject}`);
++            console.warn('Body:');
++            console.warn(html);
++            console.warn('Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM in .env to send real emails.');
++            console.warn('================================================================================');
++            return { success: true, messageId: `mocked-smtp-${Date.now()}`, mocked: true };
++        }
++
++        const transporter = createTransporter();
++        const info = await transporter.sendMail({
++            from: process.env.SMTP_FROM || process.env.SMTP_USER,
++            to,
++            subject,
++            html
++        });
++
++        console.log(`[Email] Sent to ${to}, messageId: ${info.messageId}`);
++        return { success: true, messageId: info.messageId };
+     } catch (error) {
+-        console.error(`[Email] Failed to process mocked email to ${to}: ${error.message}`);
++        console.error(`[Email] Failed to send email to ${to}: ${error.message}`);
+         return { success: false, error: error.message };
+     }
+ };
+diff --git a/backend-v2/src/services/orderLookupService.js b/backend-v2/src/services/orderLookupService.js
+index 1edacaf..db2d242 100644
+--- a/backend-v2/src/services/orderLookupService.js
++++ b/backend-v2/src/services/orderLookupService.js
+@@ -33,7 +33,7 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
+                 params: {
+                     status: 'any',
+                     limit: 250,
+-                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer'
++                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer,total_price,shipping_address'
+                 },
+                 headers: { 'X-Shopify-Access-Token': accessToken },
+                 timeout: 10000
+@@ -76,9 +76,12 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
+ 
+         return {
+             found: true,
++            id: matchingOrder.id,
+             order_number: matchingOrder.name,
+             fulfillment_status: matchingOrder.fulfillment_status || 'unfulfilled',
+             financial_status: matchingOrder.financial_status || 'pending',
++            total_price: matchingOrder.total_price || null,
++            shipping_address: matchingOrder.shipping_address || null,
+             tracking_number: fulfillment?.tracking_number || null,
+             tracking_company: fulfillment?.tracking_company || null,
+             carrier: fulfillment?.tracking_company || null,
+diff --git a/backend-v2/src/services/reasoningService.js b/backend-v2/src/services/reasoningService.js
+index 2b33e85..ba54f79 100644
+--- a/backend-v2/src/services/reasoningService.js
++++ b/backend-v2/src/services/reasoningService.js
+@@ -39,7 +39,7 @@ const evaluateCancellationEligibility = (orderData, customerMemory) => {
+     try {
+         console.log(`[Reasoning] Evaluating cancellation eligibility for order ${orderData?.id}`);
+         if (!orderData) {
+-            return { eligible: true, reason: 'Manual review required' };
++            return { eligible: false, reason: 'Order not found, cannot verify cancellation eligibility' };
+         }
+
+         if (orderData.fulfillment_status === 'fulfilled') {

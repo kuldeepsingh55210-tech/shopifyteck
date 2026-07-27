@@ -167,7 +167,6 @@ const resolveOrder = async (req, res) => {
         'general_inquiry',
         'product_query',
         'wrong_item',
-        'cancel_order',
         'discount_issue',
         'payment_issue',
         'size_query'
@@ -181,7 +180,7 @@ const resolveOrder = async (req, res) => {
 
     // Helper function to check if intent requires order lookup
     const doesIntentRequireOrder = (intent) => {
-        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request', 'address_change'];
+        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request', 'address_change', 'cancel_order'];
         return orderRequiredIntents.includes(intent);
     };
 

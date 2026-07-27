@@ -1,27 +1,59 @@
 const nodemailer = require('nodemailer');
 
+const isSmtpConfigured = () => {
+    return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+};
+
+let cachedTransporter = null;
 const createTransporter = () => {
-    // Return a dummy object since we are mocking email sending
-    return {
-        sendMail: async (options) => {
-            console.log(`[Email] [MOCKED sendMail] Direct call to dummy transporter`);
-            return { messageId: `dummy-id-${Date.now()}` };
-        }
-    };
+    if (!isSmtpConfigured()) {
+        return {
+            sendMail: async (options) => {
+                console.log(`[Email] [MOCKED sendMail] SMTP not configured - would have sent to ${options.to}`);
+                return { messageId: `mocked-${Date.now()}` };
+            }
+        };
+    }
+
+    if (!cachedTransporter) {
+        cachedTransporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 465,
+            secure: Number(process.env.SMTP_PORT) === 587 ? false : true,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+    }
+    return cachedTransporter;
 };
 
 const sendEmail = async (to, subject, html) => {
     try {
-        console.log('=================== [MOCKED EMAIL OUTBOX] ===================');
-        console.log(`To:      ${to}`);
-        console.log(`Subject: ${subject}`);
-        console.log('Body:');
-        console.log(html);
-        console.log('============================================================');
-        
-        return { success: true, messageId: `mocked-smtp-${Date.now()}` };
+        if (!isSmtpConfigured()) {
+            console.warn('=================== [SMTP NOT CONFIGURED - EMAIL NOT SENT] ===================');
+            console.warn(`To:      ${to}`);
+            console.warn(`Subject: ${subject}`);
+            console.warn('Body:');
+            console.warn(html);
+            console.warn('Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM in .env to send real emails.');
+            console.warn('================================================================================');
+            return { success: true, messageId: `mocked-smtp-${Date.now()}`, mocked: true };
+        }
+
+        const transporter = createTransporter();
+        const info = await transporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to,
+            subject,
+            html
+        });
+
+        console.log(`[Email] Sent to ${to}, messageId: ${info.messageId}`);
+        return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error(`[Email] Failed to process mocked email to ${to}: ${error.message}`);
+        console.error(`[Email] Failed to send email to ${to}: ${error.message}`);
         return { success: false, error: error.message };
     }
 };

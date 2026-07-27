@@ -33,7 +33,7 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
                 params: {
                     status: 'any',
                     limit: 250,
-                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer'
+                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer,total_price,shipping_address'
                 },
                 headers: { 'X-Shopify-Access-Token': accessToken },
                 timeout: 10000
@@ -76,9 +76,12 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
 
         return {
             found: true,
+            id: matchingOrder.id,
             order_number: matchingOrder.name,
             fulfillment_status: matchingOrder.fulfillment_status || 'unfulfilled',
             financial_status: matchingOrder.financial_status || 'pending',
+            total_price: matchingOrder.total_price || null,
+            shipping_address: matchingOrder.shipping_address || null,
             tracking_number: fulfillment?.tracking_number || null,
             tracking_company: fulfillment?.tracking_company || null,
             carrier: fulfillment?.tracking_company || null,

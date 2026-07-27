@@ -15,25 +15,41 @@ const createRefund = async (shopDomain, orderId, reason) => {
     try {
         console.log(`[Action] Executing: createRefund for ${shopDomain}, order ${orderId}`);
         const token = await getShopToken(shopDomain);
-        
+        const headers = { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' };
+        const baseUrl = `https://${shopDomain}/admin/api/2024-01/orders/${orderId}`;
+
+        // Fetch the order's real line items so we can request a genuine full refund
+        // (an empty transactions array would report "success" without moving any money).
+        const orderResp = await axios.get(`${baseUrl}.json`, { headers });
+        const order = orderResp.data.order;
+        const refundLineItems = (order.line_items || []).map(item => ({
+            line_item_id: item.id,
+            quantity: item.quantity,
+            restock_type: 'no_restock'
+        }));
+
+        // Let Shopify calculate the correct refund transactions for a full refund
+        const calcResp = await axios.post(
+            `${baseUrl}/refunds/calculate.json`,
+            { refund: { refund_line_items: refundLineItems, shipping: { full_refund: true } } },
+            { headers }
+        );
+        const suggestedTransactions = calcResp.data.refund.transactions || [];
+
         const response = await axios.post(
-            `https://${shopDomain}/admin/api/2024-01/orders/${orderId}/refunds.json`,
+            `${baseUrl}/refunds.json`,
             {
                 refund: {
                     note: reason,
                     notify: true,
-                    shipping: { full_refund: false },
-                    transactions: []
+                    shipping: { full_refund: true },
+                    refund_line_items: refundLineItems,
+                    transactions: suggestedTransactions
                 }
             },
-            {
-                headers: {
-                    'X-Shopify-Access-Token': token,
-                    'Content-Type': 'application/json'
-                }
-            }
+            { headers }
         );
-        
+
         console.log(`[Action] Shopify API result: success`);
         return { success: true, refund_id: response.data.refund.id };
     } catch (error) {
