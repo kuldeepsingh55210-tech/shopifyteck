@@ -1,0 +1,483 @@
+diff --git a/backend-v2/index.js b/backend-v2/index.js
+index 224fa7d..9faeddc 100644
+--- a/backend-v2/index.js
++++ b/backend-v2/index.js
+@@ -85,6 +85,7 @@ const apiRoute = require('./src/routes/api');
+ const webhooksRoute = require('./src/routes/webhooks');
+ const { resolveOrder } = require('./src/controllers/resolveController');
+ const authRoutes = require('./src/routes/auth');
++const refundApprovalRoute = require('./src/routes/refundApproval');
+ 
+ app.get('/health', async (req, res) => {
+     try {
+@@ -114,6 +115,7 @@ app.use('/shopify', shopifyRoute);
+ app.use('/api', verifySessionToken, apiRoute);
+ app.use('/webhooks', webhooksRoute);
+ app.use('/api/auth', authRoutes);
++app.use('/refund-approval', refundApprovalRoute);
+ app.post('/resolve-order', verifySessionToken, resolveOrder);
+ 
+ // Error handler
+diff --git a/backend-v2/src/controllers/refundApprovalController.js b/backend-v2/src/controllers/refundApprovalController.js
+new file mode 100644
+index 0000000..74a996a
+--- /dev/null
++++ b/backend-v2/src/controllers/refundApprovalController.js
+@@ -0,0 +1,72 @@
++const refundApprovalService = require('../services/refundApprovalService');
++const actionService = require('../services/actionService');
++
++const renderPage = (title, message, isError = false) => `
++<!DOCTYPE html>
++<html>
++<head>
++  <title>${title}</title>
++  <meta name="viewport" content="width=device-width, initial-scale=1">
++  <style>
++    body { font-family: -apple-system, Arial, sans-serif; background: #f5f5f5; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
++    .card { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-width: 420px; text-align: center; }
++    h1 { font-size: 20px; color: ${isError ? '#dc2626' : '#111'}; margin-bottom: 12px; }
++    p { color: #555; line-height: 1.5; }
++  </style>
++</head>
++<body><div class="card"><h1>${title}</h1><p>${message}</p></div></body>
++</html>`;
++
++const approveRefund = async (req, res) => {
++    const { token } = req.params;
++    const approval = await refundApprovalService.getByToken(token);
++
++    if (!approval) {
++        return res.status(404).send(renderPage('Link not found', 'This refund approval link is invalid or has expired.', true));
++    }
++    if (approval.status !== 'pending') {
++        return res.send(renderPage('Already handled', `This refund request was already marked as "${approval.status}". No further action was taken.`));
++    }
++
++    // Atomic flip pending -> approved. If this returns null, someone else (e.g. a double-click) already resolved it.
++    const resolved = await refundApprovalService.markResolved(token, 'approved');
++    if (!resolved) {
++        return res.send(renderPage('Already handled', 'This refund request was already processed.'));
++    }
++
++    const result = await actionService.createRefund(resolved.shop_domain, resolved.order_id, resolved.reason || 'Merchant-approved refund via ORYQX');
++    await actionService.logAction(resolved.shop_domain, resolved.customer_email, null, 'refund', { order: resolved.order_id, approved_via_email: true }, result.success, result.error);
++
++    if (!result.success) {
++        return res.send(renderPage(
++            'Approved, but refund failed',
++            `The request was marked approved, but Shopify returned an error while processing it. Please process this refund manually in Shopify Admin for order ${resolved.order_number || resolved.order_id}.`,
++            true
++        ));
++    }
++
++    return res.send(renderPage('Refund approved \u2705', `The refund for order ${resolved.order_number || resolved.order_id} has been processed. Refund ID: ${result.refund_id}.`));
++};
++
++const rejectRefund = async (req, res) => {
++    const { token } = req.params;
++    const approval = await refundApprovalService.getByToken(token);
++
++    if (!approval) {
++        return res.status(404).send(renderPage('Link not found', 'This refund approval link is invalid or has expired.', true));
++    }
++    if (approval.status !== 'pending') {
++        return res.send(renderPage('Already handled', `This refund request was already marked as "${approval.status}". No further action was taken.`));
++    }
++
++    const resolved = await refundApprovalService.markResolved(token, 'rejected');
++    if (!resolved) {
++        return res.send(renderPage('Already handled', 'This refund request was already processed.'));
++    }
++
++    await actionService.logAction(resolved.shop_domain, resolved.customer_email, null, 'refund_rejected', { order: resolved.order_id }, true);
++
++    return res.send(renderPage('Refund rejected', `The refund request for order ${resolved.order_number || resolved.order_id} has been marked as rejected. No refund was issued.`));
++};
++
++module.exports = { approveRefund, rejectRefund };
+diff --git a/backend-v2/src/controllers/resolveController.js b/backend-v2/src/controllers/resolveController.js
+index 03f851a..9969218 100644
+--- a/backend-v2/src/controllers/resolveController.js
++++ b/backend-v2/src/controllers/resolveController.js
+@@ -6,6 +6,9 @@ const { decryptToken } = require('../utils/tokenEncryption');
+ const memoryService = require('../services/memoryService');
+ const reasoningService = require('../services/reasoningService');
+ const ragService = require('../services/ragService');
++const emailService = require('../services/emailService');
++const refundApprovalService = require('../services/refundApprovalService');
++const addressExtractionService = require('../services/addressExtractionService');
+ 
+ const resolveOrder = async (req, res) => {
+     let { shop_id, customer_message, order_number, customer_email } = req.body;
+@@ -178,7 +181,7 @@ const resolveOrder = async (req, res) => {
+ 
+     // Helper function to check if intent requires order lookup
+     const doesIntentRequireOrder = (intent) => {
+-        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request'];
++        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request', 'address_change'];
+         return orderRequiredIntents.includes(intent);
+     };
+ 
+@@ -301,6 +304,8 @@ ALWAYS mention tracking number if available.`;
+             eligibility = reasoningService.evaluateRefundEligibility(orderData, customerMemory);
+         } else if (intentResult.intent === 'cancel_order') {
+             eligibility = reasoningService.evaluateCancellationEligibility(orderData, customerMemory);
++        } else if (intentResult.intent === 'address_change') {
++            eligibility = reasoningService.evaluateAddressChangeEligibility(orderData);
+         }
+ 
+         escalationData = reasoningService.calculateEscalationProbability(customerMemory, intentResult.intent, intentResult.sentiment);
+@@ -454,11 +459,65 @@ ALWAYS mention tracking number if available.`;
+             
+             // Execute specific actions based on intent
+             if (intentResult.intent === 'refund_request' && eligibility.eligible === true) {
+-                const result = await actionService.createRefund(shop.shop_domain, orderData.id || order_number, 'Customer request via AI Support');
+-                if (result.success) {
+-                    finalResponse += ` Your refund ID is: ${result.refund_id}.`;
++                // Refunds are no longer auto-executed. The AI handles everything up to this point
++                // (intent detection, eligibility check, order lookup) and then hands the final
++                // execution step to the merchant via a one-click approve/reject email.
++                const approval = await refundApprovalService.createApprovalRequest({
++                    shopDomain: shop.shop_domain,
++                    orderId: orderData.id || order_number,
++                    orderNumber: order_number,
++                    customerEmail: customer_email,
++                    amount: orderData.total_price || null,
++                    reason: 'Customer requested a refund via AI Support chat'
++                });
++
++                const approveUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/approve`;
++                const rejectUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/reject`;
++
++                const merchantAlertEmail = settings.email_notifications && settings.notification_email
++                    ? settings.notification_email
++                    : process.env.MERCHANT_ALERT_EMAIL;
++
++                if (merchantAlertEmail) {
++                    await emailService.sendRefundApprovalRequest(merchantAlertEmail, {
++                        customerEmail: customer_email,
++                        orderNumber: order_number,
++                        amount: orderData.total_price,
++                        reason: 'Customer requested a refund via chat',
++                        approveUrl,
++                        rejectUrl
++                    });
++                } else {
++                    console.warn('[Resolve] No merchant alert email configured - refund approval email was not sent');
++                }
++
++                finalResponse += ` I've forwarded this refund request to our team for a quick review \u2014 you'll be notified as soon as it's approved.`;
++                await actionService.logAction(shop.shop_domain, customer_email, null, 'refund_pending_approval', { order: orderData.id || order_number, approval_token: approval.token }, true);
++            } else if (intentResult.intent === 'address_change' && eligibility.eligible === true) {
++                const extracted = await addressExtractionService.extractAddress(customer_message);
++
++                if (addressExtractionService.isAddressComplete(extracted)) {
++                    const existingAddr = orderData.shipping_address || {};
++                    const newAddress = {
++                        address1: extracted.address1,
++                        address2: extracted.address2 || existingAddr.address2 || '',
++                        city: extracted.city,
++                        province: extracted.province || existingAddr.province || '',
++                        zip: extracted.zip,
++                        country: extracted.country || existingAddr.country || 'India',
++                        phone: extracted.phone || existingAddr.phone || ''
++                    };
++
++                    const result = await actionService.updateShippingAddress(shop.shop_domain, orderData.id || order_number, newAddress);
++                    if (result.success) {
++                        finalResponse += ` I've updated your shipping address to: ${newAddress.address1}, ${newAddress.city}, ${newAddress.zip}. Please double check this is correct and let us know right away if anything needs fixing.`;
++                    } else {
++                        finalResponse += ` I wasn't able to update the address automatically due to a system error \u2014 please contact our support team directly so they can update it for you.`;
++                    }
++                    await actionService.logAction(shop.shop_domain, customer_email, null, 'address_change', { order: orderData.id || order_number, new_address: newAddress }, result.success, result.error);
++                } else {
++                    finalResponse += ` I couldn't fully read your new address from that message. Could you please send it in this format: Full street address, City, State, PIN code?`;
+                 }
+-                await actionService.logAction(shop.shop_domain, customer_email, null, 'refund', { order: orderData.id || order_number }, result.success, result.error);
+             } else if (intentResult.intent === 'cancel_order' && eligibility.eligible === true) {
+                 const result = await actionService.cancelOrder(shop.shop_domain, orderData.id || order_number, 'Customer request via AI Support');
+                 if (result.success) {
+diff --git a/backend-v2/src/db/migrations/002_refund_approvals.sql b/backend-v2/src/db/migrations/002_refund_approvals.sql
+new file mode 100644
+index 0000000..0bf396c
+--- /dev/null
++++ b/backend-v2/src/db/migrations/002_refund_approvals.sql
+@@ -0,0 +1,16 @@
++CREATE TABLE IF NOT EXISTS refund_approvals (
++  id SERIAL PRIMARY KEY,
++  shop_domain VARCHAR(255) NOT NULL,
++  order_id VARCHAR(255) NOT NULL,
++  order_number VARCHAR(255),
++  customer_email VARCHAR(255) NOT NULL,
++  amount VARCHAR(50),
++  reason TEXT,
++  token VARCHAR(255) UNIQUE NOT NULL,
++  status VARCHAR(20) DEFAULT 'pending',
++  created_at TIMESTAMP DEFAULT NOW(),
++  resolved_at TIMESTAMP
++);
++
++CREATE INDEX IF NOT EXISTS idx_refund_approvals_token ON refund_approvals(token);
++CREATE INDEX IF NOT EXISTS idx_refund_approvals_shop_status ON refund_approvals(shop_domain, status);
+diff --git a/backend-v2/src/routes/refundApproval.js b/backend-v2/src/routes/refundApproval.js
+new file mode 100644
+index 0000000..16f08b3
+--- /dev/null
++++ b/backend-v2/src/routes/refundApproval.js
+@@ -0,0 +1,8 @@
++const express = require('express');
++const router = express.Router();
++const { approveRefund, rejectRefund } = require('../controllers/refundApprovalController');
++
++router.get('/:token/approve', approveRefund);
++router.get('/:token/reject', rejectRefund);
++
++module.exports = router;
+diff --git a/backend-v2/src/services/actionService.js b/backend-v2/src/services/actionService.js
+index e3be36b..38a6412 100644
+--- a/backend-v2/src/services/actionService.js
++++ b/backend-v2/src/services/actionService.js
+@@ -70,6 +70,35 @@ const cancelOrder = async (shopDomain, orderId, reason) => {
+     }
+ };
+ 
++const updateShippingAddress = async (shopDomain, orderId, addressObj) => {
++    try {
++        console.log(`[Action] Executing: updateShippingAddress for ${shopDomain}, order ${orderId}`);
++        const token = await getShopToken(shopDomain);
++
++        const response = await axios.put(
++            `https://${shopDomain}/admin/api/2024-01/orders/${orderId}.json`,
++            {
++                order: {
++                    id: orderId,
++                    shipping_address: addressObj
++                }
++            },
++            {
++                headers: {
++                    'X-Shopify-Access-Token': token,
++                    'Content-Type': 'application/json'
++                }
++            }
++        );
++
++        console.log(`[Action] Shopify API result: success`);
++        return { success: true, shipping_address: response.data.order.shipping_address };
++    } catch (error) {
++        console.error(`[Action] Shopify API result: failed - ${error.message}`);
++        return { success: false, error: error.response?.data || error.message };
++    }
++};
++
+ const createDiscountCode = async (shopDomain, customerEmail, discountPercent) => {
+     try {
+         console.log(`[Action] Executing: createDiscountCode for ${customerEmail}`);
+@@ -193,6 +222,7 @@ const logAction = async (shopDomain, customerEmail, ticketId, actionType, action
+ module.exports = {
+     createRefund,
+     cancelOrder,
++    updateShippingAddress,
+     createDiscountCode,
+     sendEmailNotification,
+     escalateToHuman,
+diff --git a/backend-v2/src/services/addressExtractionService.js b/backend-v2/src/services/addressExtractionService.js
+new file mode 100644
+index 0000000..2b0a2f7
+--- /dev/null
++++ b/backend-v2/src/services/addressExtractionService.js
+@@ -0,0 +1,46 @@
++const Groq = require('groq-sdk');
++
++const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
++
++// Pulls address fields out of a single free-text customer message like:
++// "my new address is 123 MG Road, Indore, MP, 452001, phone 9876543210"
++// Returns null on failure so the caller can fall back to asking the customer to resend it.
++const extractAddress = async (customerMessage) => {
++    try {
++        const prompt = `Extract a shipping address from this customer message. Return ONLY valid JSON, no markdown, no explanation, no extra text.
++Format exactly: {"address1": "string or null", "address2": "string or null", "city": "string or null", "province": "string or null", "zip": "string or null", "country": "string or null", "phone": "string or null"}
++Rules:
++- If a field is not clearly present in the message, use null for that field.
++- Do not guess, invent, or infer values that are not stated.
++- "address1" should be the street/house/building line only, not the full address.
++
++Message: "${customerMessage}"`;
++
++        const completion = await groq.chat.completions.create({
++            messages: [{ role: 'user', content: prompt }],
++            model: 'llama-3.1-8b-instant',
++            temperature: 0,
++            max_tokens: 250
++        });
++
++        const raw = completion.choices[0]?.message?.content || '';
++        const clean = raw
++            .replace(/```json\n?/g, '')
++            .replace(/```\n?/g, '')
++            .trim();
++
++        return JSON.parse(clean);
++    } catch (error) {
++        console.error(`[AddressExtraction] Failed: ${error.message}`);
++        return null;
++    }
++};
++
++// Minimum bar for "confident enough to act on automatically": street, city, and postal code.
++// Province/country/phone are allowed to be missing and get backfilled from the existing order.
++const isAddressComplete = (addr) => {
++    if (!addr) return false;
++    return !!(addr.address1 && addr.city && addr.zip);
++};
++
++module.exports = { extractAddress, isAddressComplete };
+diff --git a/backend-v2/src/services/emailService.js b/backend-v2/src/services/emailService.js
+index 3166629..23c2c97 100644
+--- a/backend-v2/src/services/emailService.js
++++ b/backend-v2/src/services/emailService.js
+@@ -41,7 +41,25 @@ const sendEscalationAlert = async (merchantEmail, customerEmail, reason, priorit
+     return sendEmail(merchantEmail, subject, body);
+ };
+ 
++const sendRefundApprovalRequest = async (merchantEmail, details) => {
++    const { customerEmail, orderNumber, amount, reason, approveUrl, rejectUrl } = details;
++    console.log(`[Email] Triggering refund approval request to ${merchantEmail} (mocked)`);
++
++    const subject = `Refund approval needed \u2014 Order ${orderNumber}`;
++    const body = `A customer has requested a refund and it's ready for your review.<br/><br/>
++      <strong>Customer:</strong> ${customerEmail}<br/>
++      <strong>Order:</strong> ${orderNumber}<br/>
++      <strong>Amount:</strong> ${amount || 'See order in Shopify admin'}<br/>
++      <strong>Reason:</strong> ${reason}<br/><br/>
++      <a href="${approveUrl}" style="background:#16a34a;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;margin-right:10px;display:inline-block;">Approve Refund</a>
++      <a href="${rejectUrl}" style="background:#dc2626;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Reject</a><br/><br/>
++      Each link can only be used once, and only one of them will take effect.`;
++
++    return sendEmail(merchantEmail, subject, body);
++};
++
+ module.exports = {
+     sendEmail,
+-    sendEscalationAlert
++    sendEscalationAlert,
++    sendRefundApprovalRequest
+ };
+diff --git a/backend-v2/src/services/intentDetectionService.js b/backend-v2/src/services/intentDetectionService.js
+index 6321bd6..13e6693 100644
+--- a/backend-v2/src/services/intentDetectionService.js
++++ b/backend-v2/src/services/intentDetectionService.js
+@@ -70,6 +70,17 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain =
+             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
+         }
+ 
++        if (message.includes('change address') || message.includes('change my address') ||
++            message.includes('update address') || message.includes('update my address') ||
++            message.includes('update shipping address') || message.includes('change shipping address') ||
++            message.includes('wrong address') || message.includes('incorrect address') ||
++            message.includes('shipping address change') || message.includes('delivery address change') ||
++            message.includes('naya address') || message.includes('address badal') ||
++            message.includes('pata badal') || message.includes('galat address')) {
++            console.log('[Intent] Detected as address_change (local pattern match)');
++            return { ...defaultResult, intent: 'address_change', confidence: 0.9, urgency: 'medium' };
++        }
++
+         if (message.includes('wrong item') || message.includes('incorrect item') || 
+             message.includes('wrong product') || message.includes('galat item')) {
+             console.log('[Intent] Detected as wrong_item (local pattern match)');
+@@ -136,7 +147,7 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain =
+             console.log('[Intent] RAG context injected into prompt');
+         }
+ 
+-        const promptText = `${promptPrefix}Classify this customer service message into ONE of these 18 intents:
++        const promptText = `${promptPrefix}Classify this customer service message into ONE of these 19 intents:
+ 1. order_status
+ 2. shipping_status
+ 3. refund_request
+@@ -155,10 +166,11 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain =
+ 16. wrong_item
+ 17. discount_issue
+ 18. size_query
++19. address_change
+ 
+ Use the context provided to better understand the customer's situation and intent.
+ Return ONLY valid JSON (no markdown):
+-{"intent": "order_status|shipping_status|refund_request|cancel_order|product_query|angry_customer|vip_customer|human_handoff|cod_verification|payment_issue|exchange_request|loyalty_inquiry|abandoned_cart|delivery_issue|general_inquiry|wrong_item|discount_issue|size_query", "confidence": 0.0-1.0, "sentiment": "positive|neutral|negative|angry", "urgency": "low|medium|high", "language": "english|hinglish", "secondary_intent": "null_or_string", "buying_signal": true_or_false, "escalation_hint": true_or_false}
++{"intent": "order_status|shipping_status|refund_request|cancel_order|product_query|angry_customer|vip_customer|human_handoff|cod_verification|payment_issue|exchange_request|loyalty_inquiry|abandoned_cart|delivery_issue|general_inquiry|wrong_item|discount_issue|size_query|address_change", "confidence": 0.0-1.0, "sentiment": "positive|neutral|negative|angry", "urgency": "low|medium|high", "language": "english|hinglish", "secondary_intent": "null_or_string", "buying_signal": true_or_false, "escalation_hint": true_or_false}
+ 
+ Message: "${customerMessage}"`;
+ 
+diff --git a/backend-v2/src/services/reasoningService.js b/backend-v2/src/services/reasoningService.js
+index 890531e..2b33e85 100644
+--- a/backend-v2/src/services/reasoningService.js
++++ b/backend-v2/src/services/reasoningService.js
+@@ -57,6 +57,24 @@ const evaluateCancellationEligibility = (orderData, customerMemory) => {
+     }
+ };
+ 
++const evaluateAddressChangeEligibility = (orderData) => {
++    try {
++        console.log(`[Reasoning] Evaluating address-change eligibility for order ${orderData?.id}`);
++        if (!orderData) {
++            return { eligible: false, reason: 'Missing order data' };
++        }
++
++        if (orderData.fulfillment_status === 'fulfilled' || orderData.fulfillment_status === 'partial') {
++            return { eligible: false, reason: 'Order already shipped, address can no longer be changed' };
++        }
++
++        return { eligible: true, reason: 'Order not yet shipped, address change possible' };
++    } catch (error) {
++        console.error(`[Reasoning] Error in evaluateAddressChangeEligibility: ${error.message}`);
++        return { eligible: false, reason: 'Error evaluating eligibility' };
++    }
++};
++
+ const calculateEscalationProbability = (customerMemory, intent, sentiment) => {
+     let score = 0;
+     
+@@ -187,6 +205,7 @@ const logReasoning = async (shopDomain, customerEmail, ticketId, intent, sentime
+ module.exports = {
+     evaluateRefundEligibility,
+     evaluateCancellationEligibility,
++    evaluateAddressChangeEligibility,
+     calculateEscalationProbability,
+     buildReasoningContext,
+     makeDecision,
+diff --git a/backend-v2/src/services/refundApprovalService.js b/backend-v2/src/services/refundApprovalService.js
+new file mode 100644
+index 0000000..cd0e251
+--- /dev/null
++++ b/backend-v2/src/services/refundApprovalService.js
+@@ -0,0 +1,29 @@
++const crypto = require('crypto');
++const db = require('../db/db');
++
++const createApprovalRequest = async ({ shopDomain, orderId, orderNumber, customerEmail, amount, reason }) => {
++    const token = crypto.randomBytes(24).toString('hex');
++    const result = await db.query(
++        `INSERT INTO refund_approvals (shop_domain, order_id, order_number, customer_email, amount, reason, token, status)
++         VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending') RETURNING id, token, order_id, order_number, shop_domain, customer_email, amount, reason`,
++        [shopDomain, orderId, orderNumber, customerEmail, amount, reason, token]
++    );
++    return result.rows[0];
++};
++
++const getByToken = async (token) => {
++    const result = await db.query('SELECT * FROM refund_approvals WHERE token = $1', [token]);
++    return result.rows[0] || null;
++};
++
++// Atomically flips status from 'pending' -> given status. Returns null if it was already resolved
++// (prevents double-refunding if the merchant clicks the link twice or a stale email is reused).
++const markResolved = async (token, status) => {
++    const result = await db.query(
++        `UPDATE refund_approvals SET status = $1, resolved_at = NOW() WHERE token = $2 AND status = 'pending' RETURNING *`,
++        [status, token]
++    );
++    return result.rows[0] || null;
++};
++
++module.exports = { createApprovalRequest, getByToken, markResolved };

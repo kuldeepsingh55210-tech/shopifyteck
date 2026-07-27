@@ -57,6 +57,24 @@ const evaluateCancellationEligibility = (orderData, customerMemory) => {
     }
 };
 
+const evaluateAddressChangeEligibility = (orderData) => {
+    try {
+        console.log(`[Reasoning] Evaluating address-change eligibility for order ${orderData?.id}`);
+        if (!orderData) {
+            return { eligible: false, reason: 'Missing order data' };
+        }
+
+        if (orderData.fulfillment_status === 'fulfilled' || orderData.fulfillment_status === 'partial') {
+            return { eligible: false, reason: 'Order already shipped, address can no longer be changed' };
+        }
+
+        return { eligible: true, reason: 'Order not yet shipped, address change possible' };
+    } catch (error) {
+        console.error(`[Reasoning] Error in evaluateAddressChangeEligibility: ${error.message}`);
+        return { eligible: false, reason: 'Error evaluating eligibility' };
+    }
+};
+
 const calculateEscalationProbability = (customerMemory, intent, sentiment) => {
     let score = 0;
     
@@ -187,6 +205,7 @@ const logReasoning = async (shopDomain, customerEmail, ticketId, intent, sentime
 module.exports = {
     evaluateRefundEligibility,
     evaluateCancellationEligibility,
+    evaluateAddressChangeEligibility,
     calculateEscalationProbability,
     buildReasoningContext,
     makeDecision,

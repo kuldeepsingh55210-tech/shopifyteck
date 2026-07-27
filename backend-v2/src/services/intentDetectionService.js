@@ -70,6 +70,17 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
         }
 
+        if (message.includes('change address') || message.includes('change my address') ||
+            message.includes('update address') || message.includes('update my address') ||
+            message.includes('update shipping address') || message.includes('change shipping address') ||
+            message.includes('wrong address') || message.includes('incorrect address') ||
+            message.includes('shipping address change') || message.includes('delivery address change') ||
+            message.includes('naya address') || message.includes('address badal') ||
+            message.includes('pata badal') || message.includes('galat address')) {
+            console.log('[Intent] Detected as address_change (local pattern match)');
+            return { ...defaultResult, intent: 'address_change', confidence: 0.9, urgency: 'medium' };
+        }
+
         if (message.includes('wrong item') || message.includes('incorrect item') || 
             message.includes('wrong product') || message.includes('galat item')) {
             console.log('[Intent] Detected as wrong_item (local pattern match)');
@@ -136,7 +147,7 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             console.log('[Intent] RAG context injected into prompt');
         }
 
-        const promptText = `${promptPrefix}Classify this customer service message into ONE of these 18 intents:
+        const promptText = `${promptPrefix}Classify this customer service message into ONE of these 19 intents:
 1. order_status
 2. shipping_status
 3. refund_request
@@ -155,10 +166,11 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
 16. wrong_item
 17. discount_issue
 18. size_query
+19. address_change
 
 Use the context provided to better understand the customer's situation and intent.
 Return ONLY valid JSON (no markdown):
-{"intent": "order_status|shipping_status|refund_request|cancel_order|product_query|angry_customer|vip_customer|human_handoff|cod_verification|payment_issue|exchange_request|loyalty_inquiry|abandoned_cart|delivery_issue|general_inquiry|wrong_item|discount_issue|size_query", "confidence": 0.0-1.0, "sentiment": "positive|neutral|negative|angry", "urgency": "low|medium|high", "language": "english|hinglish", "secondary_intent": "null_or_string", "buying_signal": true_or_false, "escalation_hint": true_or_false}
+{"intent": "order_status|shipping_status|refund_request|cancel_order|product_query|angry_customer|vip_customer|human_handoff|cod_verification|payment_issue|exchange_request|loyalty_inquiry|abandoned_cart|delivery_issue|general_inquiry|wrong_item|discount_issue|size_query|address_change", "confidence": 0.0-1.0, "sentiment": "positive|neutral|negative|angry", "urgency": "low|medium|high", "language": "english|hinglish", "secondary_intent": "null_or_string", "buying_signal": true_or_false, "escalation_hint": true_or_false}
 
 Message: "${customerMessage}"`;
 

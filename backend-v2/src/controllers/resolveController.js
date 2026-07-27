@@ -6,6 +6,9 @@ const { decryptToken } = require('../utils/tokenEncryption');
 const memoryService = require('../services/memoryService');
 const reasoningService = require('../services/reasoningService');
 const ragService = require('../services/ragService');
+const emailService = require('../services/emailService');
+const refundApprovalService = require('../services/refundApprovalService');
+const addressExtractionService = require('../services/addressExtractionService');
 
 const resolveOrder = async (req, res) => {
     let { shop_id, customer_message, order_number, customer_email } = req.body;
@@ -178,7 +181,7 @@ const resolveOrder = async (req, res) => {
 
     // Helper function to check if intent requires order lookup
     const doesIntentRequireOrder = (intent) => {
-        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request'];
+        const orderRequiredIntents = ['order_status', 'shipping_status', 'delivery_issue', 'refund_request', 'exchange_request', 'address_change'];
         return orderRequiredIntents.includes(intent);
     };
 
@@ -301,6 +304,8 @@ ALWAYS mention tracking number if available.`;
             eligibility = reasoningService.evaluateRefundEligibility(orderData, customerMemory);
         } else if (intentResult.intent === 'cancel_order') {
             eligibility = reasoningService.evaluateCancellationEligibility(orderData, customerMemory);
+        } else if (intentResult.intent === 'address_change') {
+            eligibility = reasoningService.evaluateAddressChangeEligibility(orderData);
         }
 
         escalationData = reasoningService.calculateEscalationProbability(customerMemory, intentResult.intent, intentResult.sentiment);
@@ -454,11 +459,65 @@ ALWAYS mention tracking number if available.`;
             
             // Execute specific actions based on intent
             if (intentResult.intent === 'refund_request' && eligibility.eligible === true) {
-                const result = await actionService.createRefund(shop.shop_domain, orderData.id || order_number, 'Customer request via AI Support');
-                if (result.success) {
-                    finalResponse += ` Your refund ID is: ${result.refund_id}.`;
+                // Refunds are no longer auto-executed. The AI handles everything up to this point
+                // (intent detection, eligibility check, order lookup) and then hands the final
+                // execution step to the merchant via a one-click approve/reject email.
+                const approval = await refundApprovalService.createApprovalRequest({
+                    shopDomain: shop.shop_domain,
+                    orderId: orderData.id || order_number,
+                    orderNumber: order_number,
+                    customerEmail: customer_email,
+                    amount: orderData.total_price || null,
+                    reason: 'Customer requested a refund via AI Support chat'
+                });
+
+                const approveUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/approve`;
+                const rejectUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/reject`;
+
+                const merchantAlertEmail = settings.email_notifications && settings.notification_email
+                    ? settings.notification_email
+                    : process.env.MERCHANT_ALERT_EMAIL;
+
+                if (merchantAlertEmail) {
+                    await emailService.sendRefundApprovalRequest(merchantAlertEmail, {
+                        customerEmail: customer_email,
+                        orderNumber: order_number,
+                        amount: orderData.total_price,
+                        reason: 'Customer requested a refund via chat',
+                        approveUrl,
+                        rejectUrl
+                    });
+                } else {
+                    console.warn('[Resolve] No merchant alert email configured - refund approval email was not sent');
                 }
-                await actionService.logAction(shop.shop_domain, customer_email, null, 'refund', { order: orderData.id || order_number }, result.success, result.error);
+
+                finalResponse += ` I've forwarded this refund request to our team for a quick review \u2014 you'll be notified as soon as it's approved.`;
+                await actionService.logAction(shop.shop_domain, customer_email, null, 'refund_pending_approval', { order: orderData.id || order_number, approval_token: approval.token }, true);
+            } else if (intentResult.intent === 'address_change' && eligibility.eligible === true) {
+                const extracted = await addressExtractionService.extractAddress(customer_message);
+
+                if (addressExtractionService.isAddressComplete(extracted)) {
+                    const existingAddr = orderData.shipping_address || {};
+                    const newAddress = {
+                        address1: extracted.address1,
+                        address2: extracted.address2 || existingAddr.address2 || '',
+                        city: extracted.city,
+                        province: extracted.province || existingAddr.province || '',
+                        zip: extracted.zip,
+                        country: extracted.country || existingAddr.country || 'India',
+                        phone: extracted.phone || existingAddr.phone || ''
+                    };
+
+                    const result = await actionService.updateShippingAddress(shop.shop_domain, orderData.id || order_number, newAddress);
+                    if (result.success) {
+                        finalResponse += ` I've updated your shipping address to: ${newAddress.address1}, ${newAddress.city}, ${newAddress.zip}. Please double check this is correct and let us know right away if anything needs fixing.`;
+                    } else {
+                        finalResponse += ` I wasn't able to update the address automatically due to a system error \u2014 please contact our support team directly so they can update it for you.`;
+                    }
+                    await actionService.logAction(shop.shop_domain, customer_email, null, 'address_change', { order: orderData.id || order_number, new_address: newAddress }, result.success, result.error);
+                } else {
+                    finalResponse += ` I couldn't fully read your new address from that message. Could you please send it in this format: Full street address, City, State, PIN code?`;
+                }
             } else if (intentResult.intent === 'cancel_order' && eligibility.eligible === true) {
                 const result = await actionService.cancelOrder(shop.shop_domain, orderData.id || order_number, 'Customer request via AI Support');
                 if (result.success) {

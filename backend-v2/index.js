@@ -85,6 +85,7 @@ const apiRoute = require('./src/routes/api');
 const webhooksRoute = require('./src/routes/webhooks');
 const { resolveOrder } = require('./src/controllers/resolveController');
 const authRoutes = require('./src/routes/auth');
+const refundApprovalRoute = require('./src/routes/refundApproval');
 
 app.get('/health', async (req, res) => {
     try {
@@ -114,6 +115,7 @@ app.use('/shopify', shopifyRoute);
 app.use('/api', verifySessionToken, apiRoute);
 app.use('/webhooks', webhooksRoute);
 app.use('/api/auth', authRoutes);
+app.use('/refund-approval', refundApprovalRoute);
 app.post('/resolve-order', verifySessionToken, resolveOrder);
 
 // Error handler

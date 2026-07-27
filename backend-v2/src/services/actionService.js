@@ -70,6 +70,35 @@ const cancelOrder = async (shopDomain, orderId, reason) => {
     }
 };
 
+const updateShippingAddress = async (shopDomain, orderId, addressObj) => {
+    try {
+        console.log(`[Action] Executing: updateShippingAddress for ${shopDomain}, order ${orderId}`);
+        const token = await getShopToken(shopDomain);
+
+        const response = await axios.put(
+            `https://${shopDomain}/admin/api/2024-01/orders/${orderId}.json`,
+            {
+                order: {
+                    id: orderId,
+                    shipping_address: addressObj
+                }
+            },
+            {
+                headers: {
+                    'X-Shopify-Access-Token': token,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log(`[Action] Shopify API result: success`);
+        return { success: true, shipping_address: response.data.order.shipping_address };
+    } catch (error) {
+        console.error(`[Action] Shopify API result: failed - ${error.message}`);
+        return { success: false, error: error.response?.data || error.message };
+    }
+};
+
 const createDiscountCode = async (shopDomain, customerEmail, discountPercent) => {
     try {
         console.log(`[Action] Executing: createDiscountCode for ${customerEmail}`);
@@ -193,6 +222,7 @@ const logAction = async (shopDomain, customerEmail, ticketId, actionType, action
 module.exports = {
     createRefund,
     cancelOrder,
+    updateShippingAddress,
     createDiscountCode,
     sendEmailNotification,
     escalateToHuman,
