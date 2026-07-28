@@ -223,7 +223,24 @@ Generate a helpful response:`
         console.error('[Response] Full error:', error.message);
         console.log('[Response] Using fallback response...');
 
-
+        // If we already have real order data for an order/shipping status question, use it directly
+        // instead of falling back to a generic "please share your order number" template - that
+        // template is only appropriate when we genuinely don't have the order yet.
+        if ((intent === 'order_status' || intent === 'shipping_status') &&
+            orderData && typeof orderData === 'object' && (orderData.order_number || orderData.id)) {
+            console.log('[Response] Building direct order-status fallback from real order data (skipping generic template)');
+            const orderNum = orderData.order_number || orderData.id;
+            const statusText = orderData.fulfillment_status === 'fulfilled'
+                ? 'has shipped'
+                : orderData.fulfillment_status === 'partial'
+                    ? 'has partially shipped'
+                    : 'has not shipped yet';
+            let directMessage = `Your order ${orderNum} ${statusText}.`;
+            if (orderData.tracking_number) {
+                directMessage += ` Tracking number: ${orderData.tracking_number}${orderData.tracking_company ? ` via ${orderData.tracking_company}` : ''}.`;
+            }
+            return directMessage;
+        }
 
         if (shopDomain) {
             const canned = await getCannedResponse(shopDomain, intent);
