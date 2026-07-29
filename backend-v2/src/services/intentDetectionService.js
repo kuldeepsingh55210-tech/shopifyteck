@@ -1,7 +1,7 @@
 const axios = require('axios');
 const ragService = require('./ragService');
 
-const detectIntent = async (customerMessage, customerContext = '', shopDomain = null, ragContext = '') => {
+const detectIntent = async (customerMessage, customerContext = '', shopDomain = null, ragContext = '', lastIntent = null) => {
     try {
         console.log(`[Intent] Detecting intent for: "${customerMessage}"`);
 
@@ -37,8 +37,10 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             /\d/.test(trimmedMessage) &&
             !trimmedMessage.includes(' ');
         if (looksLikeBareOrderNumber) {
-            console.log('[Intent] Detected as order_status (bare order-number reply pattern match)');
-            return { ...defaultResult, intent: 'order_status', confidence: 0.9, urgency: 'medium' };
+            const carryForwardIntents = ['refund_request', 'cancel_order', 'address_change', 'exchange_request'];
+            const resolvedIntent = carryForwardIntents.includes(lastIntent) ? lastIntent : 'order_status';
+            console.log(`[Intent] Detected as ${resolvedIntent} (bare order-number reply pattern match, carried forward from lastIntent=${lastIntent})`);
+            return { ...defaultResult, intent: resolvedIntent, confidence: 0.9, urgency: 'medium' };
         }
 
         const angryPatterns = /\b(pathetic|refund now|terrible|worst|horrible|furious|disgusting|useless|angry|hate|damn|garbage|trash|bs|unfair)\b/i;

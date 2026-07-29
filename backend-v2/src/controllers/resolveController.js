@@ -120,6 +120,7 @@ const resolveOrder = async (req, res) => {
     console.log(`[Resolve] Step 1: Initializing memory...`);
     const customerMemory = await memoryService.getOrCreateCustomer(shop.shop_domain, customer_email);
     const customerContext = await memoryService.getCustomerContext(shop.shop_domain, customer_email);
+    const lastIntent = await memoryService.getLastIntent(shop.shop_domain, customer_email);
     await memoryService.detectLanguagePreference(shop.shop_domain, customer_email, customer_message);
 
     const customerMessage = customer_message;
@@ -145,7 +146,7 @@ const resolveOrder = async (req, res) => {
 
     // Step 2: Detect intent + emotion
     console.log(`[Resolve] Step 2: Detecting intent...`);
-    const intentResult = await detectIntent(customer_message, customerContext, shop.shop_domain, ragContext);
+    const intentResult = await detectIntent(customer_message, customerContext, shop.shop_domain, ragContext, lastIntent);
 
     // Fallback: Hardcoded keyword check in case LLM rate-limits or misses sentiment
     const angryKeywords = ['furious', 'worst', 'hate', 'terrible', 'horrible', 'angry', 'disgusting', 'useless', 'pathetic', 'frustrated', 'damn'];
