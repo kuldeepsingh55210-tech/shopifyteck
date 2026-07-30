@@ -141,6 +141,25 @@ const getLastIntent = async (shopDomain, customerEmail) => {
     }
 };
 
+const getLastMentionedOrderNumber = async (shopDomain, customerEmail) => {
+    try {
+        const result = await db.query(
+            `SELECT message FROM conversation_history
+             WHERE shop_domain = $1 AND customer_email = $2
+             ORDER BY created_at DESC LIMIT 5`,
+            [shopDomain, customerEmail]
+        );
+        for (const row of result.rows) {
+            const match = row.message && row.message.match(/#([a-zA-Z0-9-_]+)/);
+            if (match) return `#${match[1]}`;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Memory] Error in getLastMentionedOrderNumber:', error.message);
+        return null;
+    }
+};
+
 const detectLanguagePreference = async (shopDomain, customerEmail, message) => {
     try {
         const hinglishKeywords = ['kya', 'hai', 'mera', 'order', 'kab', 'chahiye', 'refund', 'nahi', 'aaya', 'milega'];
@@ -178,5 +197,6 @@ module.exports = {
     saveConversation,
     getCustomerContext,
     getLastIntent,
+    getLastMentionedOrderNumber,
     detectLanguagePreference
 };

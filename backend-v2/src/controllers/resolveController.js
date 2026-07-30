@@ -121,6 +121,16 @@ const resolveOrder = async (req, res) => {
     const customerMemory = await memoryService.getOrCreateCustomer(shop.shop_domain, customer_email);
     const customerContext = await memoryService.getCustomerContext(shop.shop_domain, customer_email);
     const lastIntent = await memoryService.getLastIntent(shop.shop_domain, customer_email);
+
+    // If this message doesn't contain an order number (e.g. "I want a refund for this order"),
+    // check if the customer mentioned one recently in this same conversation instead of asking again.
+    if (order_number === 'NONE') {
+        const rememberedOrderNumber = await memoryService.getLastMentionedOrderNumber(shop.shop_domain, customer_email);
+        if (rememberedOrderNumber) {
+            order_number = rememberedOrderNumber;
+            console.log(`[Resolve] No order number in this message - using remembered order number ${order_number} from recent conversation`);
+        }
+    }
     await memoryService.detectLanguagePreference(shop.shop_domain, customer_email, customer_message);
 
     const customerMessage = customer_message;
