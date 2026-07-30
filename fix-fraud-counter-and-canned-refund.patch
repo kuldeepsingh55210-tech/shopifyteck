@@ -1,0 +1,76 @@
+diff --git a/backend-v2/src/controllers/resolveController.js b/backend-v2/src/controllers/resolveController.js
+index 81b5c32..c011797 100644
+--- a/backend-v2/src/controllers/resolveController.js
++++ b/backend-v2/src/controllers/resolveController.js
+@@ -283,6 +283,7 @@ ALWAYS mention tracking number if available.`;
+     let decision = null;
+     let escalationData = null;
+     let eligibility = null;
++    let newRefundRequestCreated = false;
+ 
+     // SPECIAL HANDLING: Force escalation for angry customers
+     if (detectedIntent === 'angry_customer' && settings.escalate_angry) {
+@@ -462,6 +463,7 @@ ALWAYS mention tracking number if available.`;
+                 // Refunds are no longer auto-executed. The AI handles everything up to this point
+                 // (intent detection, eligibility check, order lookup) and then hands the final
+                 // execution step to the merchant via a one-click approve/reject email.
++                newRefundRequestCreated = true;
+                 const approval = await refundApprovalService.createApprovalRequest({
+                     shopDomain: shop.shop_domain,
+                     orderId: orderData.id || order_number,
+@@ -607,6 +609,7 @@ ALWAYS mention tracking number if available.`;
+         sentiment: intentResult.sentiment || 'neutral',
+         wasRefund: intentResult.intent === 'refund_request',
+         wasApproved: decision.action === 'auto_resolve' && intentResult.intent === 'refund_request',
++        isNewRefundRequest: newRefundRequestCreated,
+         totalOrders: orderData?.customer?.orders_count
+     });
+ 
+diff --git a/backend-v2/src/services/memoryService.js b/backend-v2/src/services/memoryService.js
+index 53b869c..31cc15e 100644
+--- a/backend-v2/src/services/memoryService.js
++++ b/backend-v2/src/services/memoryService.js
+@@ -28,7 +28,7 @@ const getOrCreateCustomer = async (shopDomain, customerEmail, customerName = nul
+ const updateCustomerAfterInteraction = async (shopDomain, customerEmail, updateData) => {
+     try {
+         console.log(`[Memory] Updating customer ${customerEmail} after interaction`);
+-        const { intent, sentiment, wasRefund, wasApproved, totalOrders } = updateData;
++        const { intent, sentiment, wasRefund, wasApproved, isNewRefundRequest, totalOrders } = updateData;
+ 
+         // Get current customer to compute moving average
+         const customer = await getOrCreateCustomer(shopDomain, customerEmail);
+@@ -41,7 +41,11 @@ const updateCustomerAfterInteraction = async (shopDomain, customerEmail, updateD
+         const newSentimentScore = (customer.sentiment_score * 0.7) + (sentimentValue * 0.3);
+ 
+         const newTotalTickets = customer.total_tickets + 1;
+-        const newRefundRequests = intent === 'refund_request' ? customer.refund_request_count + 1 : customer.refund_request_count;
++        // Only count a genuinely NEW refund request (i.e. one that actually reached the point of
++        // creating a refund approval), not every conversational turn classified as refund_request -
++        // otherwise a single request spanning "I want a refund" + the order-number follow-up reply
++        // was being counted twice, tripping the fraud threshold after only 1-2 real requests.
++        const newRefundRequests = isNewRefundRequest ? customer.refund_request_count + 1 : customer.refund_request_count;
+         const newRefundApproved = wasApproved ? customer.refund_approved_count + 1 : customer.refund_approved_count;
+         
+         // Ensure totalOrders is passed correctly, fallback to current
+diff --git a/backend-v2/src/services/responseGeneratorService.js b/backend-v2/src/services/responseGeneratorService.js
+index 109bb68..aead0b9 100644
+--- a/backend-v2/src/services/responseGeneratorService.js
++++ b/backend-v2/src/services/responseGeneratorService.js
+@@ -242,6 +242,17 @@ Generate a helpful response:`
+             return directMessage;
+         }
+ 
++        // Same fix as above, for refund/cancel/address-change: if we already have the order,
++        // give a short neutral acknowledgment instead of a canned "please share your order number"
++        // template. The actual outcome (forwarded for review / cancelled / address updated / not
++        // eligible) gets appended separately right after this by resolveController.js.
++        if ((intent === 'refund_request' || intent === 'cancel_order' || intent === 'address_change') &&
++            orderData && typeof orderData === 'object' && (orderData.order_number || orderData.id)) {
++            console.log(`[Response] Building direct acknowledgment for ${intent} from real order data (skipping generic template)`);
++            const orderNum = orderData.order_number || orderData.id;
++            return `Thanks, I've found your order ${orderNum}.`;
++        }
++
+         if (shopDomain) {
+             const canned = await getCannedResponse(shopDomain, intent);
+             if (canned) {

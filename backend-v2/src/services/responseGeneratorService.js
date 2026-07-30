@@ -242,6 +242,17 @@ Generate a helpful response:`
             return directMessage;
         }
 
+        // Same fix as above, for refund/cancel/address-change: if we already have the order,
+        // give a short neutral acknowledgment instead of a canned "please share your order number"
+        // template. The actual outcome (forwarded for review / cancelled / address updated / not
+        // eligible) gets appended separately right after this by resolveController.js.
+        if ((intent === 'refund_request' || intent === 'cancel_order' || intent === 'address_change') &&
+            orderData && typeof orderData === 'object' && (orderData.order_number || orderData.id)) {
+            console.log(`[Response] Building direct acknowledgment for ${intent} from real order data (skipping generic template)`);
+            const orderNum = orderData.order_number || orderData.id;
+            return `Thanks, I've found your order ${orderNum}.`;
+        }
+
         if (shopDomain) {
             const canned = await getCannedResponse(shopDomain, intent);
             if (canned) {

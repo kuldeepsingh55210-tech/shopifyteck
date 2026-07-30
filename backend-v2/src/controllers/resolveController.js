@@ -283,6 +283,7 @@ ALWAYS mention tracking number if available.`;
     let decision = null;
     let escalationData = null;
     let eligibility = null;
+    let newRefundRequestCreated = false;
 
     // SPECIAL HANDLING: Force escalation for angry customers
     if (detectedIntent === 'angry_customer' && settings.escalate_angry) {
@@ -462,6 +463,7 @@ ALWAYS mention tracking number if available.`;
                 // Refunds are no longer auto-executed. The AI handles everything up to this point
                 // (intent detection, eligibility check, order lookup) and then hands the final
                 // execution step to the merchant via a one-click approve/reject email.
+                newRefundRequestCreated = true;
                 const approval = await refundApprovalService.createApprovalRequest({
                     shopDomain: shop.shop_domain,
                     orderId: orderData.id || order_number,
@@ -607,6 +609,7 @@ ALWAYS mention tracking number if available.`;
         sentiment: intentResult.sentiment || 'neutral',
         wasRefund: intentResult.intent === 'refund_request',
         wasApproved: decision.action === 'auto_resolve' && intentResult.intent === 'refund_request',
+        isNewRefundRequest: newRefundRequestCreated,
         totalOrders: orderData?.customer?.orders_count
     });
 

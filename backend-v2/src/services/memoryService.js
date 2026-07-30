@@ -28,7 +28,7 @@ const getOrCreateCustomer = async (shopDomain, customerEmail, customerName = nul
 const updateCustomerAfterInteraction = async (shopDomain, customerEmail, updateData) => {
     try {
         console.log(`[Memory] Updating customer ${customerEmail} after interaction`);
-        const { intent, sentiment, wasRefund, wasApproved, totalOrders } = updateData;
+        const { intent, sentiment, wasRefund, wasApproved, isNewRefundRequest, totalOrders } = updateData;
 
         // Get current customer to compute moving average
         const customer = await getOrCreateCustomer(shopDomain, customerEmail);
@@ -41,7 +41,11 @@ const updateCustomerAfterInteraction = async (shopDomain, customerEmail, updateD
         const newSentimentScore = (customer.sentiment_score * 0.7) + (sentimentValue * 0.3);
 
         const newTotalTickets = customer.total_tickets + 1;
-        const newRefundRequests = intent === 'refund_request' ? customer.refund_request_count + 1 : customer.refund_request_count;
+        // Only count a genuinely NEW refund request (i.e. one that actually reached the point of
+        // creating a refund approval), not every conversational turn classified as refund_request -
+        // otherwise a single request spanning "I want a refund" + the order-number follow-up reply
+        // was being counted twice, tripping the fraud threshold after only 1-2 real requests.
+        const newRefundRequests = isNewRefundRequest ? customer.refund_request_count + 1 : customer.refund_request_count;
         const newRefundApproved = wasApproved ? customer.refund_approved_count + 1 : customer.refund_approved_count;
         
         // Ensure totalOrders is passed correctly, fallback to current
