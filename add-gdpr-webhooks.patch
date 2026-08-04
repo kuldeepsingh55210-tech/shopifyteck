@@ -1,0 +1,134 @@
+diff --git a/backend-v2/src/controllers/webhookController.js b/backend-v2/src/controllers/webhookController.js
+index 16c2980..00398d4 100644
+--- a/backend-v2/src/controllers/webhookController.js
++++ b/backend-v2/src/controllers/webhookController.js
+@@ -192,9 +192,98 @@ const handleAppUninstalled = async (req, res) => {
+     }
+ };
+ 
++// GDPR COMPLIANCE WEBHOOKS (mandatory for Shopify App Store approval)
++
++// customers/data_request - Shopify sends this when a customer asks a merchant for their data.
++// We don't have a UI to auto-export data to the customer, so we log the request clearly so
++// the merchant can find it and respond within Shopify's 30-day window.
++const handleCustomersDataRequest = async (req, res) => {
++    try {
++        const payload = req.body;
++        const shop_domain = req.headers['x-shopify-shop-domain'];
++        console.log(`[GDPR] customers/data_request received - shop: ${shop_domain}, customer: ${payload.customer?.email}`);
++
++        await db.query(
++            `INSERT INTO action_logs (shop_domain, customer_email, ticket_id, action_type, action_data, success)
++             VALUES ($1, $2, NULL, $3, $4, true)`,
++            [shop_domain, payload.customer?.email || null, 'gdpr_data_request', JSON.stringify(payload)]
++        );
++
++        res.status(200).json({ success: true });
++    } catch (error) {
++        console.error('[GDPR] customers/data_request error:', error.message);
++        // Always return 200 so Shopify doesn't retry-storm this endpoint; the error is logged for follow-up.
++        res.status(200).json({ success: true });
++    }
++};
++
++// customers/redact - Shopify sends this when a customer's data must be deleted.
++// Purge that customer's PII from every table that stores it, scoped to this shop only.
++const handleCustomersRedact = async (req, res) => {
++    try {
++        const payload = req.body;
++        const shop_domain = req.headers['x-shopify-shop-domain'];
++        const customerEmail = payload.customer?.email;
++        console.log(`[GDPR] customers/redact received - shop: ${shop_domain}, customer: ${customerEmail}`);
++
++        if (customerEmail) {
++            await db.query('DELETE FROM customer_memory WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            await db.query('DELETE FROM conversation_history WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            await db.query('DELETE FROM refund_approvals WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            await db.query('DELETE FROM csat_ratings WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            await db.query('DELETE FROM reasoning_logs WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            await db.query('DELETE FROM action_logs WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            await db.query('UPDATE tickets SET customer_email = NULL WHERE shop_domain = $1 AND customer_email = $2', [shop_domain, customerEmail]);
++            console.log(`[GDPR] Purged data for customer ${customerEmail} on shop ${shop_domain}`);
++        }
++
++        res.status(200).json({ success: true });
++    } catch (error) {
++        console.error('[GDPR] customers/redact error:', error.message);
++        res.status(200).json({ success: true });
++    }
++};
++
++// shop/redact - Shopify sends this ~48 hours after a shop uninstalls the app.
++// Purge everything scoped to this shop.
++const handleShopRedact = async (req, res) => {
++    try {
++        const payload = req.body;
++        const shop_domain = payload.shop_domain || req.headers['x-shopify-shop-domain'];
++        console.log(`[GDPR] shop/redact received - shop: ${shop_domain}`);
++
++        if (shop_domain) {
++            await db.query('DELETE FROM customer_memory WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM conversation_history WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM refund_approvals WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM csat_ratings WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM reasoning_logs WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM action_logs WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM escalation_queue WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM discount_codes WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM merchant_knowledge_base WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM canned_responses WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM merchant_settings WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM tickets WHERE shop_domain = $1', [shop_domain]);
++            await db.query('DELETE FROM orders WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = $1)', [shop_domain]);
++            await db.query('DELETE FROM webhooks WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = $1)', [shop_domain]);
++            await db.query('DELETE FROM shops WHERE shop_domain = $1', [shop_domain]);
++            console.log(`[GDPR] Purged all data for shop ${shop_domain}`);
++        }
++
++        res.status(200).json({ success: true });
++    } catch (error) {
++        console.error('[GDPR] shop/redact error:', error.message);
++        res.status(200).json({ success: true });
++    }
++};
++
+ module.exports = {
+     registerWebhooks,
+     handleOrderCreate,
+     handleOrderUpdated,
+-    handleAppUninstalled
++    handleAppUninstalled,
++    handleCustomersDataRequest,
++    handleCustomersRedact,
++    handleShopRedact
+ };
+diff --git a/backend-v2/src/routes/webhooks.js b/backend-v2/src/routes/webhooks.js
+index fa95ec9..23ace84 100644
+--- a/backend-v2/src/routes/webhooks.js
++++ b/backend-v2/src/routes/webhooks.js
+@@ -1,7 +1,14 @@
+ const express = require('express');
+ const router = express.Router();
+ const validateWebhookSignature = require('../middleware/validateWebhookSignature');
+-const { handleOrderCreate, handleOrderUpdated, handleAppUninstalled } = require('../controllers/webhookController');
++const {
++    handleOrderCreate,
++    handleOrderUpdated,
++    handleAppUninstalled,
++    handleCustomersDataRequest,
++    handleCustomersRedact,
++    handleShopRedact
++} = require('../controllers/webhookController');
+ 
+ // All webhook endpoints use signature validation
+ router.use(validateWebhookSignature);
+@@ -11,4 +18,9 @@ router.post('/orders_create', handleOrderCreate);
+ router.post('/orders_updated', handleOrderUpdated);
+ router.post('/app_uninstalled', handleAppUninstalled);
+ 
++// Mandatory GDPR compliance webhooks (required for Shopify App Store approval)
++router.post('/customers_data_request', handleCustomersDataRequest);
++router.post('/customers_redact', handleCustomersRedact);
++router.post('/shop_redact', handleShopRedact);
++
+ module.exports = router;
