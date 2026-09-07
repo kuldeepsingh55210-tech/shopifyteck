@@ -3,19 +3,16 @@ import { GlassCard } from '../GlassCard';
 import { Badge } from '../Badge';
 import { 
   ArrowLeft, 
-  ShoppingCart, 
-  MessageSquare, 
-  Star, 
-  Truck, 
   User, 
-  Sliders, 
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  ExternalLink
 } from 'lucide-react';
 
 interface Ticket {
   id: string | number;
   customer_email: string;
+  order_number?: string | null;
   detected_intent: string;
   resolution_status: string;
   response_confidence: number;
@@ -45,6 +42,7 @@ interface TestResult {
 interface TicketsProps {
   tickets: Ticket[];
   selectedTicketId: string | number | null;
+  shopDomain?: string;
   onBackToDashboard: () => void;
   onSelectTicket: (id: string | number) => void;
   // Simulator triggers passed down
@@ -67,6 +65,7 @@ interface TicketsProps {
 export const Tickets: React.FC<TicketsProps> = ({
   tickets,
   selectedTicketId,
+  shopDomain,
   onBackToDashboard,
   onSelectTicket: _onSelectTicket,
   testForm,
@@ -267,11 +266,11 @@ export const Tickets: React.FC<TicketsProps> = ({
           </div>
         </div>
       ) : (
-        /* THREE-COLUMN CHAT QUEUE VIEW */
+        /* TWO-COLUMN CHAT QUEUE VIEW */
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
           
           {/* Column 1: Customer Info Panel (LEFT) */}
-          <div className="xl:col-span-3 space-y-6">
+          <div className="xl:col-span-4 space-y-6">
             <GlassCard className="p-6 flex flex-col items-center text-center">
               <div className="w-20 h-20 rounded-full bg-[var(--surface-high)] border border-[var(--border)] flex items-center justify-center mb-4 relative shrink-0">
                 <User size={36} className="text-[var(--primary)]" />
@@ -279,9 +278,6 @@ export const Tickets: React.FC<TicketsProps> = ({
               <h3 className="font-display font-bold text-lg text-white leading-tight">
                 {activeTicket ? activeTicket.customer_email.split('@')[0] : 'Unknown Customer'}
               </h3>
-              <span className="font-mono text-[10px] text-[var(--secondary)] font-semibold uppercase tracking-wider mt-1.5">
-                Loyalty: Platinum Tier
-              </span>
 
               <div className="w-full text-left mt-6 pt-6 border-t border-[var(--border)] space-y-4 text-xs font-mono">
                 <div>
@@ -290,47 +286,46 @@ export const Tickets: React.FC<TicketsProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block">SHOPIFY STORE</span>
-                  <span className="text-white font-bold mt-1 block">Current Store</span>
-                </div>
-                <div>
-                  <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block">LIFETIME VALUE</span>
-                  <span className="text-[var(--tertiary)] font-bold mt-1 block">$1,420.50</span>
+                  <span className="text-white font-bold mt-1 block">{shopDomain || 'Current Store'}</span>
                 </div>
               </div>
             </GlassCard>
 
             {/* Order info detail card */}
-            <GlassCard className="p-5 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="font-mono text-xs font-bold text-white uppercase">ORDER #ORD-7721</span>
-                <Badge status="pending" className="!px-2 !py-0.5" />
-              </div>
-
-              <div className="space-y-2 text-xs font-mono">
-                <div className="flex justify-between text-[var(--text-muted)]">
-                  <span>Product A x1</span>
-                  <span>SKU-9981</span>
+            <GlassCard className="p-5 space-y-3 font-mono">
+              <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block font-mono">
+                LINKED ORDER
+              </span>
+              {activeTicket?.order_number && activeTicket.order_number !== 'NONE' ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-white">
+                      {activeTicket.order_number.startsWith('#') ? activeTicket.order_number : `#${activeTicket.order_number}`}
+                    </span>
+                    <Badge status={activeTicket.resolution_status} className="!px-2 !py-0.5" />
+                  </div>
+                  {shopDomain && (
+                    <a
+                      href={`https://${shopDomain}/admin/orders`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-[var(--primary)] hover:underline"
+                    >
+                      View in Shopify Admin
+                      <ExternalLink size={12} />
+                    </a>
+                  )}
                 </div>
-                <div className="flex justify-between text-[var(--text-muted)]">
-                  <span>Product B x2</span>
-                  <span>SKU-7742</span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-[var(--border)]/40 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[var(--warning)]/10 text-[var(--warning)] shrink-0">
-                  <Truck size={16} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-white">In Transit</span>
-                  <span className="text-[8px] text-[var(--text-muted)] font-mono mt-0.5">Est. Delivery: Tomorrow</span>
-                </div>
-              </div>
+              ) : (
+                <p className="text-xs text-[var(--text-muted)] font-sans">
+                  No order linked to this ticket.
+                </p>
+              )}
             </GlassCard>
           </div>
 
-          {/* Column 2: Chat & Response Suggestion (MIDDLE) */}
-          <div className="xl:col-span-6 space-y-6">
+          {/* Column 2: Chat & Response Suggestion (RIGHT) */}
+          <div className="xl:col-span-8 space-y-6">
             <GlassCard className="flex flex-col h-[520px] overflow-hidden">
               {/* Header */}
               <div className="p-5 border-b border-[var(--border)] flex justify-between items-center bg-white/[0.01]">
@@ -440,58 +435,6 @@ export const Tickets: React.FC<TicketsProps> = ({
                 </div>
               </GlassCard>
             )}
-          </div>
-
-          {/* Column 3: Interaction Timeline History (RIGHT) */}
-          <div className="xl:col-span-3">
-            <GlassCard className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">INTERACTION HISTORY</span>
-                <button className="text-[var(--text-muted)] hover:text-white transition cursor-pointer">
-                  <Sliders size={14} />
-                </button>
-              </div>
-
-              <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-[var(--border)]/60">
-                {/* Event 1 */}
-                <div className="flex gap-4 relative">
-                  <div className="w-6.5 h-6.5 rounded-full bg-[var(--surface-high)] border border-[var(--border)] flex items-center justify-center text-[var(--secondary)] relative z-10 shrink-0">
-                    <ShoppingCart size={12} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-white">Purchased Order #ORD-7721</span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">$284.00 • 3 Items</span>
-                    <span className="text-[8px] text-[var(--text-muted)] font-mono mt-1">2 DAYS AGO</span>
-                  </div>
-                </div>
-
-                {/* Event 2 */}
-                <div className="flex gap-4 relative">
-                  <div className="w-6.5 h-6.5 rounded-full bg-[var(--surface-high)] border border-[var(--border)] flex items-center justify-center text-[var(--primary)] relative z-10 shrink-0">
-                    <MessageSquare size={12} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-white">Opened Ticket #8821</span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">Issue: Shipping Status</span>
-                    <span className="text-[8px] text-[var(--tertiary)] font-mono mt-1 font-semibold">1H AGO • handle time 1.4m</span>
-                  </div>
-                </div>
-
-                {/* Event 3 */}
-                <div className="flex gap-4 relative">
-                  <div className="w-6.5 h-6.5 rounded-full bg-[var(--surface-high)] border border-[var(--border)] flex items-center justify-center text-yellow-400 relative z-10 shrink-0">
-                    <Star size={12} fill="currentColor" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-white">Left 5-Star Review</span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono mt-1 italic leading-relaxed">
-                      "Fast delivery, wonderful customer support!"
-                    </span>
-                    <span className="text-[8px] text-[var(--text-muted)] font-mono mt-1">1 WEEK AGO</span>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
           </div>
 
         </div>

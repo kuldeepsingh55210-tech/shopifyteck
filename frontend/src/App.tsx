@@ -15,6 +15,7 @@ const fetch = authedFetch;
 interface Ticket {
   id: string | number;
   customer_email: string;
+  order_number?: string | null;
   detected_intent: string;
   resolution_status: string;
   response_confidence: number;
@@ -674,6 +675,7 @@ function App() {
             <Tickets
               tickets={filteredTickets}
               selectedTicketId={selectedTicketId}
+              shopDomain={shopDomain}
               onBackToDashboard={() => setPage('dashboard')}
               onSelectTicket={(id) => setSelectedTicketId(id)}
               testForm={testForm}

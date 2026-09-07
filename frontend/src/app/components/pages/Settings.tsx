@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../GlassCard';
 import { Toggle } from '../Toggle';
 import { 
@@ -117,6 +117,25 @@ export const Settings: React.FC<SettingsProps> = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [editCannedForm, setEditCannedForm] = useState({ id: 0, title: '', intent: 'order_status', message: '', is_active: true });
   const [copied, setCopied] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  useEffect(() => {
+    let active = true;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    fetch(`${API_URL}/health`)
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => {
+        if (active) {
+          setHealthStatus(data.status === 'ok' ? 'online' : 'offline');
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setHealthStatus('offline');
+        }
+      });
+    return () => { active = false; };
+  }, []);
 
   const handleCopy = () => {
     const snippet = `<script src="https://api.oryqx.com/widget.js" data-shop="${shopDomain}" async></script>`;
@@ -198,9 +217,19 @@ export const Settings: React.FC<SettingsProps> = ({
                       <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider block">API HOOKS</span>
                       <span className="text-xs text-white mt-1 block">Active Listening</span>
                     </div>
-                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-emerald-500/10 text-[var(--tertiary)] border border-emerald-500/20">
-                      ONLINE
-                    </span>
+                    {healthStatus === 'checking' ? (
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                        CHECKING...
+                      </span>
+                    ) : healthStatus === 'online' ? (
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-emerald-500/10 text-[var(--tertiary)] border border-emerald-500/20">
+                        ONLINE
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-rose-500/10 text-[var(--danger)] border border-rose-500/20">
+                        OFFLINE
+                      </span>
+                    )}
                   </div>
                 </div>
               </GlassCard>

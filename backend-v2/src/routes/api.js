@@ -51,7 +51,7 @@ router.get('/tickets', async (req, res) => {
     if (shopCheck.rows.length === 0) return res.status(404).json({ error: 'Shop not found' });
 
     const result = await db.query(
-        `SELECT id, customer_email, detected_intent, resolution_status, 
+        `SELECT id, customer_email, order_number, detected_intent, resolution_status, 
          response_confidence, LEFT(ai_response, 100) as ai_response, created_at 
          FROM tickets 
          WHERE shop_id = $1 
