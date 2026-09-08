@@ -126,8 +126,20 @@ const getCustomerContext = async (shopDomain, customerEmail) => {
     }
 };
 
+// Anonymous customers who leave the email field blank all share the same placeholder
+// identity ('guest@customer.com'), so remembering context for that email is unsafe -
+// it would leak one anonymous customer's order/intent into a completely different
+// anonymous customer's conversation. Both memory-recall functions below refuse to
+// return anything for this shared placeholder.
+const isSharedGuestEmail = (customerEmail) => {
+    return !customerEmail || customerEmail.toLowerCase() === 'guest@customer.com';
+};
+
 const getLastIntent = async (shopDomain, customerEmail) => {
     try {
+        if (isSharedGuestEmail(customerEmail)) {
+            return null;
+        }
         const result = await db.query(
             `SELECT intent FROM conversation_history
              WHERE shop_domain = $1 AND customer_email = $2
@@ -143,6 +155,9 @@ const getLastIntent = async (shopDomain, customerEmail) => {
 
 const getLastMentionedOrderNumber = async (shopDomain, customerEmail) => {
     try {
+        if (isSharedGuestEmail(customerEmail)) {
+            return null;
+        }
         const result = await db.query(
             `SELECT message FROM conversation_history
              WHERE shop_domain = $1 AND customer_email = $2
