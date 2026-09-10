@@ -72,13 +72,9 @@ const detectIntent = async (customerMessage, customerContext = '', shopDomain = 
             return { ...defaultResult, intent: 'order_status', confidence: 0.95, urgency: 'medium' };
         }
 
-        if (message.includes('change address') || message.includes('change my address') ||
-            message.includes('update address') || message.includes('update my address') ||
-            message.includes('update shipping address') || message.includes('change shipping address') ||
-            message.includes('wrong address') || message.includes('incorrect address') ||
-            message.includes('shipping address change') || message.includes('delivery address change') ||
-            message.includes('naya address') || message.includes('address badal') ||
-            message.includes('pata badal') || message.includes('galat address')) {
+        const hasAddressWord = message.includes('address') || message.includes('pata');
+        const hasChangeWord = /\b(change|update|correct|fix|wrong|incorrect|edit|badal)\b/i.test(message);
+        if (hasAddressWord && hasChangeWord) {
             console.log('[Intent] Detected as address_change (local pattern match)');
             return { ...defaultResult, intent: 'address_change', confidence: 0.9, urgency: 'medium' };
         }
