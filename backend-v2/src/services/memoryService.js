@@ -137,40 +137,18 @@ const isSharedGuestEmail = (customerEmail) => {
 
 const getLastIntent = async (shopDomain, customerEmail) => {
     try {
-        if (isSharedGuestEmail(customerEmail)) {
-            return null;
-        }
+        const guestTimeFilter = isSharedGuestEmail(customerEmail)
+            ? `AND created_at > NOW() - INTERVAL '5 minutes'`
+            : '';
         const result = await db.query(
             `SELECT intent FROM conversation_history
-             WHERE shop_domain = $1 AND customer_email = $2
+             WHERE shop_domain = $1 AND customer_email = $2 ${guestTimeFilter}
              ORDER BY created_at DESC LIMIT 1`,
             [shopDomain, customerEmail]
         );
         return result.rows[0]?.intent || null;
     } catch (error) {
         console.error('[Memory] Error in getLastIntent:', error.message);
-        return null;
-    }
-};
-
-const getLastMentionedOrderNumber = async (shopDomain, customerEmail) => {
-    try {
-        if (isSharedGuestEmail(customerEmail)) {
-            return null;
-        }
-        const result = await db.query(
-            `SELECT message FROM conversation_history
-             WHERE shop_domain = $1 AND customer_email = $2
-             ORDER BY created_at DESC LIMIT 5`,
-            [shopDomain, customerEmail]
-        );
-        for (const row of result.rows) {
-            const match = row.message && row.message.match(/#([a-zA-Z0-9-_]+)/);
-            if (match) return `#${match[1]}`;
-        }
-        return null;
-    } catch (error) {
-        console.error('[Memory] Error in getLastMentionedOrderNumber:', error.message);
         return null;
     }
 };
@@ -212,6 +190,5 @@ module.exports = {
     saveConversation,
     getCustomerContext,
     getLastIntent,
-    getLastMentionedOrderNumber,
     detectLanguagePreference
 };
