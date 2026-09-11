@@ -111,6 +111,7 @@ const updateShippingAddress = async (shopDomain, orderId, addressObj) => {
         return { success: true, shipping_address: response.data.order.shipping_address };
     } catch (error) {
         console.error(`[Action] Shopify API result: failed - ${error.message}`);
+        console.error(`[Action] Shopify error details: ${JSON.stringify(error.response?.data || {})}`);
         return { success: false, error: error.response?.data || error.message };
     }
 };
