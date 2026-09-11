@@ -18,6 +18,10 @@ const generateFallbackResponse = (orderData, customerMessage, intent = 'order_st
     return "To cancel your order, please share your order number.";
   }
 
+  if (intent === 'address_change') {
+    return "I'd be happy to update your shipping address. Please share your order number and the new address (street, city, state, PIN code).";
+  }
+
   if (intent === 'payment_issue') {
     return "Your payment concern is noted. Please share your order number so I can help.";
   }
