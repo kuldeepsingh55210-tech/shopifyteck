@@ -1,0 +1,26 @@
+diff --git a/backend-v2/src/services/addressExtractionService.js b/backend-v2/src/services/addressExtractionService.js
+index 2b0a2f7..263c8f5 100644
+--- a/backend-v2/src/services/addressExtractionService.js
++++ b/backend-v2/src/services/addressExtractionService.js
+@@ -18,7 +18,7 @@ Message: "${customerMessage}"`;
+ 
+         const completion = await groq.chat.completions.create({
+             messages: [{ role: 'user', content: prompt }],
+-            model: 'llama-3.1-8b-instant',
++            model: 'openai/gpt-oss-20b',
+             temperature: 0,
+             max_tokens: 250
+         });
+diff --git a/backend-v2/src/services/groqService.js b/backend-v2/src/services/groqService.js
+index a91e0c2..8876cac 100644
+--- a/backend-v2/src/services/groqService.js
++++ b/backend-v2/src/services/groqService.js
+@@ -55,7 +55,7 @@ ${customInstructionsText}`;
+           { role: 'system', content: systemPrompt },
+           { role: 'user', content: customerMessage }
+         ],
+-        model: 'llama-3.1-8b-instant',
++        model: 'openai/gpt-oss-20b',
+         temperature: 0.3,
+         max_tokens: 200
+       });

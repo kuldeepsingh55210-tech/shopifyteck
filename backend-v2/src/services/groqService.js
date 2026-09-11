@@ -55,7 +55,7 @@ ${customInstructionsText}`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: customerMessage }
         ],
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
         temperature: 0.3,
         max_tokens: 200
       });
