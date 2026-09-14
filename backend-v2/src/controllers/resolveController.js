@@ -500,13 +500,25 @@ ALWAYS mention tracking number if available.`;
 
                 if (addressExtractionService.isAddressComplete(extracted)) {
                     const existingAddr = orderData.shipping_address || {};
+                    // Shopify's address validation is stricter about country when there's no existing
+                    // address to fuzzy-match the country name against - a plain country code (ISO-2)
+                    // is required for reliable validation, so we map common country names to their code.
+                    const COUNTRY_CODE_MAP = { 'india': 'IN', 'united states': 'US', 'united kingdom': 'GB', 'canada': 'CA', 'australia': 'AU' };
+                    const countryName = extracted.country || 'India';
+                    const countryCode = COUNTRY_CODE_MAP[countryName.toLowerCase()];
                     const newAddress = {
+                        first_name: existingAddr.first_name || (existingAddr.name ? existingAddr.name.split(' ')[0] : 'Customer'),
+                        last_name: existingAddr.last_name || (existingAddr.name ? existingAddr.name.split(' ').slice(1).join(' ') : '') || 'Customer',
                         address1: extracted.address1,
                         address2: extracted.address2 || existingAddr.address2 || '',
                         city: extracted.city,
                         province: extracted.province || existingAddr.province || '',
                         zip: extracted.zip,
-                        country: extracted.country || existingAddr.country || 'India',
+                        // Don't blindly inherit the OLD order's country when the customer gives a new
+                        // city/state/zip without restating the country - that caused Shopify to reject
+                        // an Indian state/PIN combined with a leftover "United States" country.
+                        country: countryName,
+                        country_code: countryCode,
                         phone: extracted.phone || existingAddr.phone || ''
                     };
 
