@@ -11,7 +11,9 @@ const refundApprovalService = require('../services/refundApprovalService');
 const addressExtractionService = require('../services/addressExtractionService');
 
 const resolveOrder = async (req, res) => {
-    let { shop_id, customer_message, order_number, customer_email } = req.body;
+    // Authenticated shop context takes absolute precedence to prevent body tampering
+    const shop_id = req.shop?.id || req.body?.shop_id;
+    let { customer_message, order_number, customer_email } = req.body || {};
 
     console.log(`\n[Resolve] ========== STARTING REASONING FLOW ==========`);
     console.log(`[Resolve] shop_id: ${shop_id}, order: ${order_number}, email: ${customer_email}`);
@@ -473,6 +475,7 @@ ALWAYS mention tracking number if available.`;
                     reason: 'Customer requested a refund via AI Support chat'
                 });
 
+                const reviewUrl = `${process.env.APP_URL}/refund-approval/${approval.token}`;
                 const approveUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/approve`;
                 const rejectUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/reject`;
 
@@ -486,6 +489,7 @@ ALWAYS mention tracking number if available.`;
                         orderNumber: order_number,
                         amount: orderData.total_price,
                         reason: 'Customer requested a refund via chat',
+                        reviewUrl,
                         approveUrl,
                         rejectUrl
                     });

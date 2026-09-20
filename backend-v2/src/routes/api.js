@@ -42,26 +42,6 @@ router.get('/shops', async (req, res) => {
 // Apply auth middleware to all routes below this line (handled globally in index.js)
 // router.use(verifyShop);
 
-// GET /api/tickets?shop_id=xxx
-router.get('/tickets', async (req, res) => {
-    const { shop_id } = req.query;
-    if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
-
-    const shopCheck = await db.query('SELECT id FROM shops WHERE id = $1', [shop_id]);
-    if (shopCheck.rows.length === 0) return res.status(404).json({ error: 'Shop not found' });
-
-    const result = await db.query(
-        `SELECT id, customer_email, order_number, detected_intent, resolution_status, 
-         response_confidence, LEFT(ai_response, 100) as ai_response, created_at 
-         FROM tickets 
-         WHERE shop_id = $1 
-         ORDER BY created_at DESC 
-         LIMIT 50`,
-        [shop_id]
-    );
-
-    res.json(result.rows);
-});
 
 // GET /api/stats?shop_id=xxx
 router.get('/stats', async (req, res) => {

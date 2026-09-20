@@ -480,22 +480,32 @@
 
     showTypingIndicator();
 
-    const shopId = await getShopId();
-    if (!shopId) {
-      removeTypingIndicator();
-      appendMessage('ai', "Sorry, I'm having trouble connecting to this shop. Please verify that the ORYQX application is installed correctly.");
-      return;
+    const isStorefront = typeof window !== 'undefined' && (window.location.hostname.includes('myshopify.com') || window.location.hostname === cleanShopDomain || !window.location.hostname.includes('oryqx.com'));
+    const proxyPath = (scriptTag && scriptTag.getAttribute('data-proxy-path')) || '/apps/oryqx-support/resolve-order';
+    const useProxy = isStorefront && !(scriptTag && scriptTag.getAttribute('data-direct-api'));
+    const resolveUrl = useProxy ? proxyPath : `${API_URL}/resolve-order`;
+
+    if (!useProxy && !cachedShopId) {
+      const shopId = await getShopId();
+      if (!shopId) {
+        removeTypingIndicator();
+        appendMessage('ai', "Sorry, I'm having trouble connecting to this shop. Please verify that the ORYQX application is installed correctly.");
+        return;
+      }
     }
 
     const payload = {
-      shop_id: shopId,
+      shop_domain: cleanShopDomain,
       customer_message: text,
       customer_email: emailInput.value.trim(),
       order_number: orderInput.value.trim()
     };
+    if (cachedShopId) {
+      payload.shop_id = cachedShopId;
+    }
 
     try {
-      const res = await fetch(`${API_URL}/resolve-order`, {
+      const res = await fetch(resolveUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

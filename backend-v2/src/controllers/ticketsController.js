@@ -3,20 +3,33 @@ const { detectIntent } = require('../services/aiService');
 
 // Saare tickets lao
 const getAllTickets = async (req, res) => {
-    const result = await db.query('SELECT * FROM tickets ORDER BY created_at DESC');
+    const shopId = req.shop?.id;
+    if (!shopId) {
+        return res.status(401).json({ error: 'Unauthorized: Missing authenticated shop context' });
+    }
+
+    const result = await db.query(
+        'SELECT * FROM tickets WHERE shop_id = $1 ORDER BY created_at DESC',
+        [shopId]
+    );
     res.json(result.rows);
 };
 
 // Naya ticket banao
 const createTicket = async (req, res) => {
-    const { shop_id, customer_message } = req.body;
+    const shopId = req.shop?.id;
+    if (!shopId) {
+        return res.status(401).json({ error: 'Unauthorized: Missing authenticated shop context' });
+    }
+
+    const { customer_message } = req.body;
 
     // AI se intent detect karo
     const aiResult = await detectIntent(customer_message);
 
     const result = await db.query(
         'INSERT INTO tickets (shop_id, raw_message, detected_intent, intent_confidence, resolution_status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [shop_id, customer_message, aiResult.intent, aiResult.confidence, 'pending']
+        [shopId, customer_message, aiResult.intent, aiResult.confidence, 'pending']
     );
 
     // Automation log save karo
@@ -35,12 +48,22 @@ const createTicket = async (req, res) => {
 
 // Ticket resolve karo
 const resolveTicket = async (req, res) => {
+    const shopId = req.shop?.id;
+    if (!shopId) {
+        return res.status(401).json({ error: 'Unauthorized: Missing authenticated shop context' });
+    }
+
     const { id } = req.params;
     const { response } = req.body;
     const result = await db.query(
-        'UPDATE tickets SET resolution_status = $1, ai_response = $2 WHERE id = $3 RETURNING *',
-        ['resolved', response, id]
+        'UPDATE tickets SET resolution_status = $1, ai_response = $2 WHERE id = $3 AND shop_id = $4 RETURNING *',
+        ['resolved', response, id, shopId]
     );
+
+    if (result.rowCount === 0 || result.rows.length === 0) {
+        return res.status(404).json({ error: 'Ticket not found' });
+    }
+
     res.json(result.rows[0]);
 };
 

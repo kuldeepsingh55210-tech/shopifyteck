@@ -7,8 +7,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const errorHandler = require('./src/middleware/errorHandler');
-const verifyShop = require('./src/middleware/verifyShop');
 const verifySessionToken = require('./src/middleware/verifySessionToken');
+const resolveAuth = require('./src/middleware/resolveAuth');
 const db = require('./src/db/db');
 
 const app = express();
@@ -20,7 +20,7 @@ app.use(helmet());
 const corsOptionsDelegate = function (req, callback) {
     let corsOptions;
     const requestPath = req.path;
-    
+
     const allowedOrigins = [
         process.env.FRONTEND_URL,
         'http://localhost:5173',
@@ -28,15 +28,15 @@ const corsOptionsDelegate = function (req, callback) {
     ].filter(Boolean);
 
     // If it's the widget endpoints, allow any origin (reflect incoming storefront origin)
-    if (requestPath === '/resolve-order' || requestPath === '/api/shops') {
-        corsOptions = { 
+    if (requestPath === '/resolve-order' || requestPath === '/proxy/resolve-order' || requestPath === '/api/shops') {
+        corsOptions = {
             origin: true,
             methods: ['GET', 'POST', 'OPTIONS'],
             credentials: true
         };
     } else {
         corsOptions = {
-            origin: function(originVal, cb) {
+            origin: function (originVal, cb) {
                 if (!originVal || allowedOrigins.includes(originVal)) {
                     cb(null, true);
                 } else {
@@ -90,15 +90,15 @@ const refundApprovalRoute = require('./src/routes/refundApproval');
 app.get('/health', async (req, res) => {
     try {
         await db.query('SELECT 1');
-        res.status(200).json({ 
-            status: 'ok', 
+        res.status(200).json({
+            status: 'ok',
             timestamp: new Date().toISOString(),
             database: 'connected'
         });
     } catch (error) {
         console.error('[Health] Database check failed:', error.message);
-        res.status(503).json({ 
-            status: 'unhealthy', 
+        res.status(503).json({
+            status: 'unhealthy',
             timestamp: new Date().toISOString(),
             database: 'disconnected'
         });
@@ -116,7 +116,8 @@ app.use('/api', verifySessionToken, apiRoute);
 app.use('/webhooks', webhooksRoute);
 app.use('/api/auth', authRoutes);
 app.use('/refund-approval', refundApprovalRoute);
-app.post('/resolve-order', verifySessionToken, resolveOrder);
+app.post('/resolve-order', resolveAuth, resolveOrder);
+app.post('/proxy/resolve-order', resolveAuth, resolveOrder);
 
 // Error handler
 app.use(errorHandler);

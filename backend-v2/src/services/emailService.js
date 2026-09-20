@@ -74,18 +74,19 @@ const sendEscalationAlert = async (merchantEmail, customerEmail, reason, priorit
 };
 
 const sendRefundApprovalRequest = async (merchantEmail, details) => {
-    const { customerEmail, orderNumber, amount, reason, approveUrl, rejectUrl } = details;
+    const { customerEmail, orderNumber, amount, reason, reviewUrl, approveUrl } = details;
+    const targetUrl = reviewUrl || (approveUrl ? approveUrl.replace(/\/approve$/, '') : '');
     console.log(`[Email] Triggering refund approval request to ${merchantEmail} (mocked)`);
 
     const subject = `Refund approval needed \u2014 Order ${orderNumber}`;
+    const formattedAmount = amount ? `$${amount}` : 'See order in Shopify admin';
     const body = `A customer has requested a refund and it's ready for your review.<br/><br/>
       <strong>Customer:</strong> ${customerEmail}<br/>
       <strong>Order:</strong> ${orderNumber}<br/>
-      <strong>Amount:</strong> ${amount || 'See order in Shopify admin'}<br/>
+      <strong>Amount:</strong> ${formattedAmount}<br/>
       <strong>Reason:</strong> ${reason}<br/><br/>
-      <a href="${approveUrl}" style="background:#16a34a;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;margin-right:10px;display:inline-block;">Approve Refund</a>
-      <a href="${rejectUrl}" style="background:#dc2626;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Reject</a><br/><br/>
-      Each link can only be used once, and only one of them will take effect.`;
+      <a href="${targetUrl}" style="background:#2563eb;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:600;">Review Refund Request</a><br/><br/>
+      Click the link above to view refund details and safely approve or reject this request.`;
 
     return sendEmail(merchantEmail, subject, body);
 };

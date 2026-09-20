@@ -1,10 +1,8 @@
 const jwt = require('jsonwebtoken');
 const db = require('../db/db');
-const verifyShop = require('./verifyShop');
-
 /**
  * Middleware to authenticate requests from the Shopify Embedded App via Session Tokens (JWT).
- * If no Authorization header is provided, it falls back to verifyShop (for testing tools and backwards compatibility).
+ * Strictly requires a valid Bearer JWT. Unauthenticated requests are immediately rejected with 401.
  */
 const verifySessionToken = async (req, res, next) => {
     // Bypass authentication for public endpoint /api/shops (e.g. used by the storefront widget to resolve shop ID)
@@ -15,9 +13,7 @@ const verifySessionToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        // Fallback for tools / simulator calls that supply shop_id directly
-        console.log('[Auth Middleware] Authorization header missing or invalid. Falling back to verifyShop.');
-        return verifyShop(req, res, next);
+        return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });
     }
 
     const token = authHeader.split(' ')[1];
@@ -68,7 +64,11 @@ const verifySessionToken = async (req, res, next) => {
             access_token: shop.access_token
         };
 
-        // Populate query parameters to maintain compatibility with legacy endpoint controllers
+        // Populate query and body parameters to enforce verified shop context and prevent tampering
+        if (req.body && typeof req.body === 'object') {
+            req.body.shop_id = shop.id;
+            req.body.shop_domain = shop.shop_domain;
+        }
         req.query.shop_id = shop.id.toString();
         req.query.shop_domain = shop.shop_domain;
 
