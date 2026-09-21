@@ -13,10 +13,10 @@ const addressExtractionService = require('../services/addressExtractionService')
 const resolveOrder = async (req, res) => {
     // Authenticated shop context takes absolute precedence to prevent body tampering
     const shop_id = req.shop?.id || req.body?.shop_id;
-    let { customer_message, order_number, customer_email } = req.body || {};
+    let { customer_message, order_number, customer_email, customer_phone } = req.body || {};
 
     console.log(`\n[Resolve] ========== STARTING REASONING FLOW ==========`);
-    console.log(`[Resolve] shop_id: ${shop_id}, order: ${order_number}, email: ${customer_email}`);
+    console.log(`[Resolve] shop_id: ${shop_id}, order: ${order_number}, email: ${customer_email}, phone: ${customer_phone}`);
 
     // Step 0: Validate inputs
     if (!shop_id || !customer_message) {
@@ -37,6 +37,22 @@ const resolveOrder = async (req, res) => {
         if (orderMatch) {
             order_number = '#' + orderMatch[1];
             console.log(`[Resolve] Extracted order number from message: ${order_number}`);
+        }
+    }
+
+    // Extract customer email from message if missing or defaulted to guest
+    const emailMatch = customer_message.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch && (!customer_email || customer_email === 'guest@customer.com')) {
+        customer_email = emailMatch[0];
+        console.log(`[Resolve] Extracted customer email from message: ${customer_email}`);
+    }
+
+    // Extract customer phone from message if not explicitly passed
+    if (!customer_phone) {
+        const phoneMatch = customer_message.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/);
+        if (phoneMatch) {
+            customer_phone = phoneMatch[0];
+            console.log(`[Resolve] Extracted customer phone from message: ${customer_phone}`);
         }
     }
 
@@ -215,18 +231,18 @@ const resolveOrder = async (req, res) => {
     } else {
         // Step 3: Get order data - ONLY for order-required intents with explicit order number
         console.log(`[Resolve] Step 3: Fetching order data for intent "${detectedIntent}" with order number "${order_number}"...`);
-        const orderDataResult = await getOrderData(shop.shop_domain, shop.access_token, order_number, customer_email);
+        const orderDataResult = await getOrderData(shop.shop_domain, shop.access_token, order_number, customer_email, customer_phone);
         orderData = orderDataResult.found ? orderDataResult : null;
 
         if (!orderData) {
             if (isAngry) {
-                console.log(`[Resolve] Order not found for angry customer with intent "${detectedIntent}", escalating`);
+                console.log(`[Resolve] Order verification failed for angry customer with intent "${detectedIntent}", escalating`);
                 const ticket = await saveTicket({ shop_id, customer_email, order_number, raw_message: customer_message, detected_intent: intentResult.intent, intent_confidence: intentResult.confidence, resolution_status: 'escalated' });
-                await logAction(ticket.id, 'ESCALATED', { reason: 'order_not_found' });
+                await logAction(ticket.id, 'ESCALATED', { reason: 'order_verification_failed' });
                 const csat_token = Buffer.from(String(ticket.id) + shop.shop_domain).toString('base64');
-                return res.json({ success: true, resolution: 'escalated', response: 'Order not found. Redirecting to human support.', intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_not_found', language: 'english', csat_token, ticket_id: ticket.id });
+                return res.json({ success: true, resolution: 'escalated', response: "We couldn't verify an order matching that information. Redirecting to human support.", intent: intentResult.intent, confidence: intentResult.confidence, escalated: true, fraud_flag: false, reasoning: 'order_verification_failed', language: 'english', csat_token, ticket_id: ticket.id });
             } else {
-                console.log(`[Resolve] Order not found for non-angry intent "${detectedIntent}", skipping order lookup`);
+                console.log(`[Resolve] Order verification failed for non-angry intent "${detectedIntent}", skipping order lookup`);
                 orderLookupSkipped = true;
             }
         }
@@ -448,7 +464,7 @@ ALWAYS mention tracking number if available.`;
                         customInstructions.push("The customer did not provide an order number. Politely ask them to provide their order number so we can look up their order.");
                     }
                 } else if (!orderData) {
-                    customInstructions.push(`We could not find any order with order number "${order_number}" in our system. Inform the customer politely that their order "${order_number}" was not found and ask them to verify the order number.`);
+                    customInstructions.push(`We could not verify an order matching that information. Inform the customer politely: "We couldn't verify an order matching that information. Please check your order number and the email address or phone number used at checkout."`);
                 }
             }
             finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);

@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { decryptToken } = require('../utils/tokenEncryption');
 
-const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, customerEmail) => {
+const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, customerEmail, customerPhone) => {
     try {
         console.log(`[Order Lookup] START - Looking for order ${orderNumber}`);
 
@@ -33,7 +33,7 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
                 params: {
                     status: 'any',
                     limit: 250,
-                    fields: 'id,name,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer,total_price,shipping_address'
+                    fields: 'id,name,email,phone,contact_email,fulfillment_status,financial_status,fulfillments,line_items,created_at,customer,total_price,shipping_address'
                 },
                 headers: { 'X-Shopify-Access-Token': accessToken },
                 timeout: 10000
@@ -49,7 +49,7 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
 
         if (orders.length === 0) {
             console.warn(`[Order Lookup] Shop has NO orders!`);
-            return { found: false };
+            return { found: false, verified: false, reason: 'not_found' };
         }
 
         orders.forEach((o, idx) => {
@@ -63,10 +63,54 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
 
         if (!matchingOrder) {
             console.error(`[Order Lookup] Order ${normalizedOrderNumber} not found`);
-            return { found: false };
+            return { found: false, verified: false, reason: 'not_found' };
         }
 
-        console.log(`[Order Lookup] Found order: ${matchingOrder.name}`);
+        console.log(`[Order Lookup] Found candidate order: ${matchingOrder.name}. Verifying ownership...`);
+
+        // Collect and normalize all valid email addresses associated with this order
+        const orderEmails = [
+            matchingOrder.email,
+            matchingOrder.contact_email,
+            matchingOrder.customer?.email
+        ].filter(Boolean).map(e => e.toLowerCase().trim());
+
+        // Collect and normalize all valid phone numbers associated with this order (digits only)
+        const orderPhones = [
+            matchingOrder.phone,
+            matchingOrder.customer?.phone,
+            matchingOrder.shipping_address?.phone
+        ].filter(Boolean).map(p => p.replace(/\D/g, ''));
+
+        // Normalize requester email - dummy placeholder 'guest@customer.com' NEVER matches
+        const normalizedRequesterEmail = (customerEmail || '').toLowerCase().trim();
+        const isDummyGuest = normalizedRequesterEmail === 'guest@customer.com';
+        const emailMatches = Boolean(
+            normalizedRequesterEmail &&
+            !isDummyGuest &&
+            orderEmails.some(e => e === normalizedRequesterEmail)
+        );
+
+        // Normalize requester phone - minimum 7 digits required
+        const normalizedRequesterPhone = (customerPhone || '').replace(/\D/g, '');
+        const phoneMatches = Boolean(
+            normalizedRequesterPhone.length >= 7 &&
+            orderPhones.some(p => {
+                if (p === normalizedRequesterPhone) return true;
+                if (p.endsWith(normalizedRequesterPhone) || normalizedRequesterPhone.endsWith(p)) {
+                    const minLen = Math.min(p.length, normalizedRequesterPhone.length);
+                    return minLen >= 10;
+                }
+                return false;
+            })
+        );
+
+        if (!emailMatches && !phoneMatches) {
+            console.warn(`[Order Lookup] Ownership verification failed for order ${matchingOrder.name}. Requester email="${customerEmail}", phone="${customerPhone}". Candidate emails=[${orderEmails.join(', ')}], candidate phones=[${orderPhones.join(', ')}]`);
+            return { found: false, verified: false, reason: 'unverified' };
+        }
+
+        console.log(`[Order Lookup] Ownership successfully verified for order ${matchingOrder.name}`);
 
         const fulfillment = matchingOrder.fulfillments?.[0];
         const lineItems = matchingOrder.line_items || [];
@@ -76,6 +120,7 @@ const getOrderData = async (shopDomain, encryptedAccessToken, orderNumber, custo
 
         return {
             found: true,
+            verified: true,
             id: matchingOrder.id,
             order_number: matchingOrder.name,
             fulfillment_status: matchingOrder.fulfillment_status || 'unfulfilled',
