@@ -1,5 +1,6 @@
 const db = require('../db/db');
 const axios = require('axios');
+const { decryptToken } = require('../utils/tokenEncryption');
 
 const topicMap = {
   'orders/create': 'ORDERS_CREATE',
@@ -11,76 +12,92 @@ const topicMap = {
   'customers/update': 'CUSTOMERS_UPDATE'
 };
 
-// Register webhooks for a shop
-const registerWebhooks = async (req, res) => {
-    const { shop_id } = req.body;
+/**
+ * Registers GraphQL webhooks for a given shop ID.
+ * Called automatically during OAuth/token exchange, or manually via authenticated endpoint.
+ * @param {number|string} shopId
+ * @returns {Promise<{ shop_domain: string, webhooks: Array }>}
+ */
+const registerWebhooksForShop = async (shopId) => {
+    if (!shopId) {
+        throw new Error('shopId is required');
+    }
 
-    if (!shop_id) {
-        return res.status(400).json({ error: 'shop_id required' });
+    const shopResult = await db.query('SELECT * FROM shops WHERE id = $1', [shopId]);
+    if (shopResult.rows.length === 0) {
+        throw new Error(`Shop with id ${shopId} not found`);
+    }
+
+    const shop = shopResult.rows[0];
+    const accessToken = decryptToken(shop.access_token);
+    const webhookUrl = `${process.env.APP_URL}/webhooks`;
+
+    const topics = ['orders/create', 'orders/updated', 'app/uninstalled'];
+    const registered = [];
+
+    for (const topic of topics) {
+        const graphqlTopic = topicMap[topic] || topic.toUpperCase().replace('/', '_');
+        console.log(`[Webhook] Registering topic: ${topic} → ${graphqlTopic} for shop: ${shop.shop_domain}`);
+        try {
+            const response = await axios.post(
+                `https://${shop.shop_domain}/admin/api/2024-01/graphql.json`,
+                {
+                    query: `mutation {
+                        webhookSubscriptionCreate(topic: ${graphqlTopic}, webhookSubscription: {
+                            callbackUrl: "${webhookUrl}/${topic.replace('/', '_')}"
+                            format: JSON
+                        }) {
+                            webhookSubscription {
+                                id
+                                topic
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }`
+                },
+                {
+                    headers: { 'X-Shopify-Access-Token': accessToken }
+                }
+            );
+
+            const data = response.data.data?.webhookSubscriptionCreate;
+            if (data?.webhookSubscription) {
+                const webhookId = data.webhookSubscription.id.split('/').pop();
+                await db.query(
+                    'INSERT INTO webhooks (shop_id, webhook_id, topic, address) VALUES ($1, $2, $3, $4) ON CONFLICT (webhook_id) DO NOTHING',
+                    [shopId, webhookId, topic, `${webhookUrl}/${topic.replace('/', '_')}`]
+                );
+                registered.push({ topic, webhookId, status: 'success' });
+                console.log(`[Webhook] Registration result for ${topic}: success`);
+            } else {
+                registered.push({ topic, status: 'error', error: data?.userErrors });
+                console.log(`[Webhook] Registration result for ${topic}: failed`);
+            }
+        } catch (error) {
+            console.error(`Error registering ${topic} webhook for ${shop.shop_domain}:`, error.message);
+            registered.push({ topic, status: 'error', error: error.message });
+            console.log(`[Webhook] Registration result for ${topic}: failed`);
+        }
+    }
+
+    return { shop_domain: shop.shop_domain, webhooks: registered };
+};
+
+// Register webhooks for an authenticated shop
+const registerWebhooks = async (req, res) => {
+    // Strictly require verified shop from verifySessionToken; ignore any client-supplied shop_id
+    const shopId = req.shop?.id;
+
+    if (!shopId) {
+        return res.status(401).json({ error: 'Unauthorized: No shop associated with authenticated session' });
     }
 
     try {
-        const shopResult = await db.query('SELECT * FROM shops WHERE id = $1', [shop_id]);
-        if (shopResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Shop not found' });
-        }
-
-        const shop = shopResult.rows[0];
-        const accessToken = require('../utils/tokenEncryption').decryptToken(shop.access_token);
-        const webhookUrl = `${process.env.APP_URL}/webhooks`;
-
-        const topics = ['orders/create', 'orders/updated', 'app/uninstalled'];
-        const registered = [];
-
-        for (const topic of topics) {
-            const graphqlTopic = topicMap[topic] || topic.toUpperCase().replace('/', '_');
-            console.log(`[Webhook] Registering topic: ${topic} → ${graphqlTopic}`);
-            try {
-                const response = await axios.post(
-                    `https://${shop.shop_domain}/admin/api/2024-01/graphql.json`,
-                    {
-                        query: `mutation {
-                            webhookSubscriptionCreate(topic: ${graphqlTopic}, webhookSubscription: {
-                                callbackUrl: "${webhookUrl}/${topic.replace('/', '_')}"
-                                format: JSON
-                            }) {
-                                webhookSubscription {
-                                    id
-                                    topic
-                                }
-                                userErrors {
-                                    field
-                                    message
-                                }
-                            }
-                        }`
-                    },
-                    {
-                        headers: { 'X-Shopify-Access-Token': accessToken }
-                    }
-                );
-
-                const data = response.data.data?.webhookSubscriptionCreate;
-                if (data?.webhookSubscription) {
-                    const webhookId = data.webhookSubscription.id.split('/').pop();
-                    await db.query(
-                        'INSERT INTO webhooks (shop_id, webhook_id, topic, address) VALUES ($1, $2, $3, $4) ON CONFLICT (webhook_id) DO NOTHING',
-                        [shop_id, webhookId, topic, `${webhookUrl}/${topic.replace('/', '_')}`]
-                    );
-                    registered.push({ topic, webhookId, status: 'success' });
-                    console.log('[Webhook] Registration result: success');
-                } else {
-                    registered.push({ topic, status: 'error', error: data?.userErrors });
-                    console.log('[Webhook] Registration result: failed');
-                }
-            } catch (error) {
-                console.error(`Error registering ${topic} webhook:`, error.message);
-                registered.push({ topic, status: 'error', error: error.message });
-                console.log('[Webhook] Registration result: failed');
-            }
-        }
-
-        res.json({ shop_domain: shop.shop_domain, webhooks: registered });
+        const result = await registerWebhooksForShop(shopId);
+        res.json(result);
     } catch (error) {
         console.error('Webhook registration error:', error.message);
         res.status(500).json({ error: error.message });
@@ -280,6 +297,7 @@ const handleShopRedact = async (req, res) => {
 
 module.exports = {
     registerWebhooks,
+    registerWebhooksForShop,
     handleOrderCreate,
     handleOrderUpdated,
     handleAppUninstalled,

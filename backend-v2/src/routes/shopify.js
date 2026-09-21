@@ -5,7 +5,8 @@ const db = require('../db/db');
 const validateShopifyHmac = require('../middleware/validateShopifyHmac');
 const axios = require('axios');
 const { encryptToken } = require('../utils/tokenEncryption');
-const { registerWebhooks } = require('../controllers/webhookController');
+const { registerWebhooks, registerWebhooksForShop } = require('../controllers/webhookController');
+const verifySessionToken = require('../middleware/verifySessionToken');
 const ragService = require('../services/ragService');
 
 // Step 1: Auth redirect
@@ -106,6 +107,14 @@ router.get('/callback', async (req, res) => {
     // Seed default KB & Canned responses for new shops
     await seedDefaultShopData(shop);
 
+    // Automatically register webhooks on install (safely wrapped so redirect is never blocked)
+    try {
+        await registerWebhooksForShop(shopId);
+        console.log(`[Shopify OAuth] Webhooks registered for shop: ${shop} (ID: ${shopId})`);
+    } catch (webhookErr) {
+        console.warn(`[Shopify OAuth] Webhook auto-registration failed for shop ${shop}:`, webhookErr?.message || webhookErr);
+    }
+
     // Redirect to frontend with both shop domain and host (enabling Shopify App Bridge in iframe)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
     const hostParam = req.query.host ? `&host=${encodeURIComponent(req.query.host)}` : '';
@@ -170,6 +179,14 @@ router.post('/token-exchange', async (req, res) => {
 
     // Seed default KB & Canned responses for new shops
     await seedDefaultShopData(shop);
+
+    // Automatically register webhooks on token exchange (safely wrapped)
+    try {
+        await registerWebhooksForShop(shopId);
+        console.log(`[Shopify Token Exchange] Webhooks registered for shop: ${shop} (ID: ${shopId})`);
+    } catch (webhookErr) {
+        console.warn(`[Shopify Token Exchange] Webhook auto-registration failed for shop ${shop}:`, webhookErr?.message || webhookErr);
+    }
 
     return res.status(200).json({
         success: true,
@@ -273,7 +290,7 @@ async function seedDefaultShopData(shop) {
     }
 }
 
-// Step 3: Register webhooks
-router.post('/webhooks/register', registerWebhooks);
+// Step 3: Register webhooks (strictly requires authenticated session token)
+router.post('/webhooks/register', verifySessionToken, registerWebhooks);
 
 module.exports = router;
