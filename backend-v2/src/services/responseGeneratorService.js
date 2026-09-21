@@ -33,8 +33,8 @@ const generateResponse = async (orderData, customerMessage, intent = 'order_stat
             language = isHinglish ? 'hinglish' : 'english';
         }
 
-        // Validate inputs
-        if ((!orderData || typeof orderData !== 'object') && !ragContext) {
+        // Validate inputs: only abort if there's no order data, no knowledge base, AND no custom instructions
+        if ((!orderData || typeof orderData !== 'object') && !ragContext && (!customPromptFlags || customPromptFlags.length === 0)) {
             console.error('[Response] ERROR: Invalid order data provided');
             return generateFallbackResponse(orderData, customerMessage, intent, language);
         }

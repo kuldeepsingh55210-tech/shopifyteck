@@ -464,10 +464,12 @@ ALWAYS mention tracking number if available.`;
                         customInstructions.push("The customer did not provide an order number. Politely ask them to provide their order number so we can look up their order.");
                     }
                 } else if (!orderData) {
-                    customInstructions.push(`We could not verify an order matching that information. Inform the customer politely: "We couldn't verify an order matching that information. Please check your order number and the email address or phone number used at checkout."`);
+                    finalResponse = "We couldn't verify an order matching that information. Please check your order number and the email address or phone number used at checkout.";
                 }
             }
-            finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
+            if (!finalResponse) {
+                finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
+            }
         } else {
             const customInstructions = [reasoningContextStr];
             if (orderDataInstruction) {

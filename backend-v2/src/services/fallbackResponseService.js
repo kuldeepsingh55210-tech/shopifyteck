@@ -7,6 +7,9 @@ const generateFallbackResponse = (orderData, customerMessage, intent = 'order_st
   }
 
   if (intent === 'order_status' || intent === 'shipping_status' || intent === 'delivery_issue') {
+    if (customerMessage && (/#\w+/.test(customerMessage) || /\b\d{4,}\b/.test(customerMessage))) {
+      return "We couldn't verify an order matching that information. Please check your order number and the email address or phone number used at checkout.";
+    }
     return "Please share your order number and I'll check the status right away!";
   }
 
