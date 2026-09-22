@@ -1,8 +1,12 @@
 const axios = require('axios');
+const rateLimiter = require('./rateLimiterService');
 
-const checkResponseConfidence = async (orderData, generatedResponse) => {
+const HIGH_RISK_INTENTS = ['refund_request', 'cancel_order', 'address_change'];
+
+const checkResponseConfidence = async (orderData, generatedResponse, threshold = 50, intent = null) => {
+    const isHighRisk = HIGH_RISK_INTENTS.includes(intent);
     try {
-        console.log(`[Confidence] START - Checking confidence for response: "${generatedResponse.substring(0, 100)}..."`);
+        console.log(`[Confidence] START - Checking confidence for response: "${generatedResponse ? generatedResponse.substring(0, 100) : ''}..." (Intent: ${intent || 'N/A'}, HighRisk: ${isHighRisk})`);
 
         // Validate inputs
         if (!generatedResponse || generatedResponse.trim().length === 0) {
@@ -13,6 +17,20 @@ const checkResponseConfidence = async (orderData, generatedResponse) => {
         if (!orderData || typeof orderData !== 'object') {
             console.error('[Confidence] ERROR: Invalid order data provided');
             return { confidence_score: 0, reason: 'Invalid order data', should_escalate: true };
+        }
+
+        // Check if rateLimiter global cooldown is active
+        if (rateLimiter.isGlobalCooldown()) {
+            if (isHighRisk) {
+                console.warn(`[Confidence] Global cooldown active on high-risk intent "${intent}" - FAILING CLOSED`);
+                return {
+                    confidence_score: 0,
+                    reason: `Global rate limit cooldown active on high-risk intent (${intent}) - escalated for safety`,
+                    should_escalate: true
+                };
+            }
+            console.warn(`[Confidence] Global rate limit cooldown active on low-risk intent "${intent}" - failing open`);
+            return { confidence_score: 65, reason: 'Global rate limit cooldown active - skipped', should_escalate: false };
         }
 
         console.log(`[Confidence] Calling Gemini API to rate response quality...`);
@@ -39,19 +57,25 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
                     }]
                 }
             ),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Confidence check timeout')), 8000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Confidence check timeout')), 4000))
         ]);
 
         // Validate API response structure
         if (!apiResponse.data || !apiResponse.data.candidates || apiResponse.data.candidates.length === 0) {
             console.error('[Confidence] ERROR: Invalid Gemini API response structure');
             console.error('[Confidence] Response:', JSON.stringify(apiResponse.data).substring(0, 200));
+            if (isHighRisk) {
+                return { confidence_score: 0, reason: 'Invalid API response structure on high-risk intent', should_escalate: true };
+            }
             return { confidence_score: 65, reason: 'Default confidence', should_escalate: false };
         }
 
         const candidate = apiResponse.data.candidates[0];
         if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
             console.error('[Confidence] ERROR: No content in API response');
+            if (isHighRisk) {
+                return { confidence_score: 0, reason: 'No content in API response on high-risk intent', should_escalate: true };
+            }
             return { confidence_score: 65, reason: 'Default confidence', should_escalate: false };
         }
 
@@ -93,6 +117,9 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         // Validate the parsed result
         if (!result || typeof result !== 'object') {
             console.error('[Confidence] ERROR: Parsed result is not an object');
+            if (isHighRisk) {
+                return { confidence_score: 0, reason: 'Parsed result not an object on high-risk intent', should_escalate: true };
+            }
             return { confidence_score: 65, reason: 'Default confidence', should_escalate: false };
         }
 
@@ -100,12 +127,18 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         if (result.confidence_score === undefined || result.confidence_score === null) {
             console.error('[Confidence] ERROR: confidence_score missing from result');
             console.error('[Confidence] Result:', JSON.stringify(result));
+            if (isHighRisk) {
+                return { confidence_score: 0, reason: 'Score missing from response on high-risk intent', should_escalate: true };
+            }
             return { confidence_score: 65, reason: 'Score missing from response', should_escalate: false };
         }
 
         const confidenceScore = parseInt(result.confidence_score, 10);
         if (isNaN(confidenceScore)) {
             console.error(`[Confidence] ERROR: confidence_score is NaN: "${result.confidence_score}"`);
+            if (isHighRisk) {
+                return { confidence_score: 0, reason: 'Invalid score value on high-risk intent', should_escalate: true };
+            }
             return { confidence_score: 65, reason: 'Invalid score value', should_escalate: false };
         }
 
@@ -120,7 +153,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         return {
             confidence_score: validatedScore,
             reason: result.reason || 'Quality check completed',
-            should_escalate: validatedScore < 60  // Escalate if confidence below 60%
+            should_escalate: validatedScore < threshold  // Escalate if confidence below threshold
         };
 
     } catch (error) {
@@ -137,14 +170,23 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 
         console.error('[Confidence] Full error:', error);
 
-        // Return a neutral default confidence instead of 0 on error
-        // This prevents false escalations due to transient API issues
+        // High-risk intents (refunds, cancellations, address changes): FAIL-CLOSED
+        if (isHighRisk) {
+            console.warn(`[Confidence] Guardrail check failed on high-risk intent "${intent}" — FAILING CLOSED`);
+            return {
+                confidence_score: 0,
+                reason: `Confidence check failed/timed out on high-risk intent (${intent}): ${error.message}`,
+                should_escalate: true
+            };
+        }
+
+        // Low-risk intents (order_status, shipping_status, etc.): FAIL-OPEN
         return {
             confidence_score: 65,
-            reason: 'Unable to calculate confidence',
+            reason: `Unable to calculate confidence on low-risk intent: ${error.message}`,
             should_escalate: false
         };
     }
 };
 
-module.exports = { checkResponseConfidence };
+module.exports = { checkResponseConfidence, HIGH_RISK_INTENTS };

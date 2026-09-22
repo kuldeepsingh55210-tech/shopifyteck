@@ -9,6 +9,8 @@ const ragService = require('../services/ragService');
 const emailService = require('../services/emailService');
 const refundApprovalService = require('../services/refundApprovalService');
 const addressExtractionService = require('../services/addressExtractionService');
+const { checkResponseConfidence } = require('../services/confidenceGuardrailService');
+const actionService = require('../services/actionService');
 
 const resolveOrder = async (req, res) => {
     // Authenticated shop context takes absolute precedence to prevent body tampering
@@ -380,8 +382,6 @@ ALWAYS mention tracking number if available.`;
 
     console.log('[Resolve] Final decision before routing:', decision.action, 'isPolicyQuestion:', isPolicyQuestion);
     const reasoningContextStr = reasoningService.buildReasoningContext(customerMemory, orderData, intentResult.intent, intentResult.sentiment, escalationData.probability);
-
-    const actionService = require('../services/actionService');
     
     // Step 5: Route by decision
     console.log(`[Resolve] Step 5: Routing decision -> ${decision.action}`);
@@ -397,6 +397,8 @@ ALWAYS mention tracking number if available.`;
     let isFraud = decision.action === 'flag_fraud';
     let isEscalated = ['escalate', 'flag_fraud'].includes(decision.action);
     let finalResponse = '';
+    let confidenceScore = null;
+    let guardrailResult = null;
 
     if (decision.action === 'escalate') {
         const customInstructions = [reasoningContextStr];
@@ -478,95 +480,114 @@ ALWAYS mention tracking number if available.`;
             }
             finalResponse = await generateResponse(orderData, customer_message, intentResult.intent, customInstructions, ragContext, shop.shop_domain, intentResult.language);
             
-            // Execute specific actions based on intent
-            if (intentResult.intent === 'refund_request' && eligibility.eligible === true) {
-                // Refunds are no longer auto-executed. The AI handles everything up to this point
-                // (intent detection, eligibility check, order lookup) and then hands the final
-                // execution step to the merchant via a one-click approve/reject email.
-                newRefundRequestCreated = true;
-                const approval = await refundApprovalService.createApprovalRequest({
-                    shopDomain: shop.shop_domain,
-                    orderId: orderData.id || order_number,
-                    orderNumber: order_number,
-                    customerEmail: customer_email,
-                    amount: orderData.total_price || null,
-                    reason: 'Customer requested a refund via AI Support chat'
-                });
+            // Step 5.1: Run Confidence Guardrail BEFORE executing any Shopify mutations
+            console.log(`[Resolve] Running confidence guardrail for order ${orderData.order_number || orderData.id} (Intent: ${intentResult.intent})...`);
+            guardrailResult = await checkResponseConfidence(orderData, finalResponse, settings.min_confidence, intentResult.intent);
+            confidenceScore = guardrailResult.confidence_score;
+            decision.confidence = confidenceScore / 100.0;
 
-                const reviewUrl = `${process.env.APP_URL}/refund-approval/${approval.token}`;
-                const approveUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/approve`;
-                const rejectUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/reject`;
+            if (guardrailResult.should_escalate || confidenceScore < settings.min_confidence) {
+                console.warn(`[Resolve] Confidence guardrail triggered escalation before action execution! Score: ${confidenceScore}%, Threshold: ${settings.min_confidence}%`);
+                decision.action = 'escalate';
+                decision.reasoning = `Confidence guardrail score (${confidenceScore}%) below threshold (${settings.min_confidence}%): ${guardrailResult.reason}`;
+                resolutionStatus = 'escalated';
+                isEscalated = true;
 
-                const merchantAlertEmail = settings.email_notifications && settings.notification_email
-                    ? settings.notification_email
-                    : process.env.MERCHANT_ALERT_EMAIL;
+                // Adjust finalResponse to standard escalation message
+                const isHinglish = intentResult.language === 'hinglish';
+                finalResponse = isHinglish
+                    ? "Aapke order ki sahi jaankari ke liye, maine aapka request humari support team ko forward kar diya hai. Humare agent jald hi aapse contact karenge."
+                    : "I want to make sure you get the most accurate details for your order. I've escalated your request to our human support team, and a representative will follow up with you shortly.";
 
-                if (merchantAlertEmail) {
-                    await emailService.sendRefundApprovalRequest(merchantAlertEmail, {
-                        customerEmail: customer_email,
+                // Trigger escalation notifications
+                await actionService.escalateToHuman(shop.shop_domain, null, customer_email, decision.reasoning, 'high');
+                await actionService.sendEmailNotification(shop.shop_domain, customer_email, 'Your ticket has been escalated', 'A support agent will contact you within 2 hours.');
+                await actionService.logAction(shop.shop_domain, customer_email, null, 'escalation', { reason: decision.reasoning }, true);
+            } else {
+                // Confidence check PASSED: Execute specific actions based on intent
+                if (intentResult.intent === 'refund_request' && eligibility.eligible === true) {
+                    // Refunds are no longer auto-executed. The AI handles everything up to this point
+                    // (intent detection, eligibility check, order lookup) and then hands the final
+                    // execution step to the merchant via a one-click approve/reject email.
+                    newRefundRequestCreated = true;
+                    const approval = await refundApprovalService.createApprovalRequest({
+                        shopDomain: shop.shop_domain,
+                        orderId: orderData.id || order_number,
                         orderNumber: order_number,
-                        amount: orderData.total_price,
-                        reason: 'Customer requested a refund via chat',
-                        reviewUrl,
-                        approveUrl,
-                        rejectUrl
+                        customerEmail: customer_email,
+                        amount: orderData.total_price || null,
+                        reason: 'Customer requested a refund via AI Support chat'
                     });
-                } else {
-                    console.warn('[Resolve] No merchant alert email configured - refund approval email was not sent');
-                }
 
-                finalResponse += ` I've forwarded this refund request to our team for a quick review \u2014 you'll be notified as soon as it's approved.`;
-                await actionService.logAction(shop.shop_domain, customer_email, null, 'refund_pending_approval', { order: orderData.id || order_number, approval_token: approval.token }, true);
-            } else if (intentResult.intent === 'address_change' && eligibility.eligible === true) {
-                const extracted = await addressExtractionService.extractAddress(customer_message);
+                    const reviewUrl = `${process.env.APP_URL}/refund-approval/${approval.token}`;
+                    const approveUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/approve`;
+                    const rejectUrl = `${process.env.APP_URL}/refund-approval/${approval.token}/reject`;
 
-                if (addressExtractionService.isAddressComplete(extracted)) {
-                    const existingAddr = orderData.shipping_address || {};
-                    // Shopify's address validation is stricter about country when there's no existing
-                    // address to fuzzy-match the country name against - a plain country code (ISO-2)
-                    // is required for reliable validation, so we map common country names to their code.
-                    const COUNTRY_CODE_MAP = { 'india': 'IN', 'united states': 'US', 'united kingdom': 'GB', 'canada': 'CA', 'australia': 'AU' };
-                    const countryName = extracted.country || 'India';
-                    const countryCode = COUNTRY_CODE_MAP[countryName.toLowerCase()];
-                    const newAddress = {
-                        first_name: existingAddr.first_name || (existingAddr.name ? existingAddr.name.split(' ')[0] : 'Customer'),
-                        last_name: existingAddr.last_name || (existingAddr.name ? existingAddr.name.split(' ').slice(1).join(' ') : '') || 'Customer',
-                        address1: extracted.address1,
-                        address2: extracted.address2 || existingAddr.address2 || '',
-                        city: extracted.city,
-                        province: extracted.province || existingAddr.province || '',
-                        zip: extracted.zip,
-                        // Don't blindly inherit the OLD order's country when the customer gives a new
-                        // city/state/zip without restating the country - that caused Shopify to reject
-                        // an Indian state/PIN combined with a leftover "United States" country.
-                        country: countryName,
-                        country_code: countryCode,
-                        phone: extracted.phone || existingAddr.phone || ''
-                    };
+                    const merchantAlertEmail = settings.email_notifications && settings.notification_email
+                        ? settings.notification_email
+                        : process.env.MERCHANT_ALERT_EMAIL;
 
-                    const result = await actionService.updateShippingAddress(shop.shop_domain, orderData.id || order_number, newAddress);
-                    if (result.success) {
-                        finalResponse += ` I've updated your shipping address to: ${newAddress.address1}, ${newAddress.city}, ${newAddress.zip}. Please double check this is correct and let us know right away if anything needs fixing.`;
+                    if (merchantAlertEmail) {
+                        await emailService.sendRefundApprovalRequest(merchantAlertEmail, {
+                            customerEmail: customer_email,
+                            orderNumber: order_number,
+                            amount: orderData.total_price,
+                            reason: 'Customer requested a refund via chat',
+                            reviewUrl,
+                            approveUrl,
+                            rejectUrl
+                        });
                     } else {
-                        finalResponse += ` I wasn't able to update the address automatically due to a system error \u2014 please contact our support team directly so they can update it for you.`;
+                        console.warn('[Resolve] No merchant alert email configured - refund approval email was not sent');
                     }
-                    await actionService.logAction(shop.shop_domain, customer_email, null, 'address_change', { order: orderData.id || order_number, new_address: newAddress }, result.success, result.error);
-                } else {
-                    finalResponse += ` I couldn't fully read your new address from that message. Could you please send it in this format: Full street address, City, State, PIN code?`;
-                }
-            } else if (intentResult.intent === 'cancel_order' && eligibility.eligible === true) {
-                const result = await actionService.cancelOrder(shop.shop_domain, orderData.id || order_number, 'Customer request via AI Support');
-                if (result.success) {
-                    finalResponse += ` Your order has been cancelled.`;
-                }
-                await actionService.logAction(shop.shop_domain, customer_email, null, 'cancel', { order: orderData.id || order_number }, result.success, result.error);
-            } else if (intentResult.intent === 'angry_customer' || intentResult.sentiment === 'angry') {
-                if (settings.discount_enabled) {
-                    const coupon = await actionService.createDiscountCode(shop.shop_domain, customer_email, settings.discount_percent);
-                    if (coupon.success) {
-                        finalResponse += ` As an apology for the inconvenience, here is a ${settings.discount_percent}% discount code for your next order: ${coupon.code}.`;
+
+                    finalResponse += ` I've forwarded this refund request to our team for a quick review \u2014 you'll be notified as soon as it's approved.`;
+                    await actionService.logAction(shop.shop_domain, customer_email, null, 'refund_pending_approval', { order: orderData.id || order_number, approval_token: approval.token }, true);
+                } else if (intentResult.intent === 'address_change' && eligibility.eligible === true) {
+                    const extracted = await addressExtractionService.extractAddress(customer_message);
+
+                    if (addressExtractionService.isAddressComplete(extracted)) {
+                        const existingAddr = orderData.shipping_address || {};
+                        const COUNTRY_CODE_MAP = { 'india': 'IN', 'united states': 'US', 'united kingdom': 'GB', 'canada': 'CA', 'australia': 'AU' };
+                        const countryName = extracted.country || 'India';
+                        const countryCode = COUNTRY_CODE_MAP[countryName.toLowerCase()];
+                        const newAddress = {
+                            first_name: existingAddr.first_name || (existingAddr.name ? existingAddr.name.split(' ')[0] : 'Customer'),
+                            last_name: existingAddr.last_name || (existingAddr.name ? existingAddr.name.split(' ').slice(1).join(' ') : '') || 'Customer',
+                            address1: extracted.address1,
+                            address2: extracted.address2 || existingAddr.address2 || '',
+                            city: extracted.city,
+                            province: extracted.province || existingAddr.province || '',
+                            zip: extracted.zip,
+                            country: countryName,
+                            country_code: countryCode,
+                            phone: extracted.phone || existingAddr.phone || ''
+                        };
+
+                        const result = await actionService.updateShippingAddress(shop.shop_domain, orderData.id || order_number, newAddress);
+                        if (result.success) {
+                            finalResponse += ` I've updated your shipping address to: ${newAddress.address1}, ${newAddress.city}, ${newAddress.zip}. Please double check this is correct and let us know right away if anything needs fixing.`;
+                        } else {
+                            finalResponse += ` I wasn't able to update the address automatically due to a system error \u2014 please contact our support team directly so they can update it for you.`;
+                        }
+                        await actionService.logAction(shop.shop_domain, customer_email, null, 'address_change', { order: orderData.id || order_number, new_address: newAddress }, result.success, result.error);
+                    } else {
+                        finalResponse += ` I couldn't fully read your new address from that message. Could you please send it in this format: Full street address, City, State, PIN code?`;
                     }
-                    await actionService.logAction(shop.shop_domain, customer_email, null, 'discount', { percent: settings.discount_percent, code: coupon.code }, coupon.success, coupon.error);
+                } else if (intentResult.intent === 'cancel_order' && eligibility.eligible === true) {
+                    const result = await actionService.cancelOrder(shop.shop_domain, orderData.id || order_number, 'Customer request via AI Support');
+                    if (result.success) {
+                        finalResponse += ` Your order has been cancelled.`;
+                    }
+                    await actionService.logAction(shop.shop_domain, customer_email, null, 'cancel', { order: orderData.id || order_number }, result.success, result.error);
+                } else if (intentResult.intent === 'angry_customer' || intentResult.sentiment === 'angry') {
+                    if (settings.discount_enabled) {
+                        const coupon = await actionService.createDiscountCode(shop.shop_domain, customer_email, settings.discount_percent);
+                        if (coupon.success) {
+                            finalResponse += ` As an apology for the inconvenience, here is a ${settings.discount_percent}% discount code for your next order: ${coupon.code}.`;
+                        }
+                        await actionService.logAction(shop.shop_domain, customer_email, null, 'discount', { percent: settings.discount_percent, code: coupon.code }, coupon.success, coupon.error);
+                    }
                 }
             }
         }
@@ -586,6 +607,10 @@ ALWAYS mention tracking number if available.`;
 
     // Step 6: Save reasoning log
     console.log(`[Resolve] Step 6: Saving reasoning log...`);
+    const reasoningSummary = guardrailResult 
+        ? `${decision.reasoning} [Confidence: ${guardrailResult.confidence_score}% - ${guardrailResult.reason}]`
+        : decision.reasoning;
+
     await reasoningService.logReasoning(
         shop.shop_domain, 
         customer_email, 
@@ -594,9 +619,10 @@ ALWAYS mention tracking number if available.`;
         intentResult.sentiment, 
         escalationData.probability, 
         decision.action, 
-        decision.reasoning, 
+        reasoningSummary, 
         isFraud, 
-        eligibility.eligible ? eligibility.eligible.toString() : null
+        eligibility.eligible ? eligibility.eligible.toString() : null,
+        confidenceScore
     );
 
     // Finalize interaction (save ticket and memory)

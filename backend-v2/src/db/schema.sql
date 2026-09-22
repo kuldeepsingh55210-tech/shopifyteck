@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS reasoning_logs (
     reasoning_summary TEXT,
     fraud_flag BOOLEAN DEFAULT false,
     refund_eligible VARCHAR(50),
+    confidence_score INTEGER,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -178,6 +179,10 @@ CREATE TABLE IF NOT EXISTS merchant_settings (
 UPDATE merchant_settings 
 SET escalation_threshold = 60 
 WHERE escalation_threshold < 1;
+
+-- Add confidence_score to reasoning_logs if table already exists
+ALTER TABLE reasoning_logs ADD COLUMN IF NOT EXISTS confidence_score INTEGER;
+ALTER TABLE merchant_settings ADD COLUMN IF NOT EXISTS min_confidence INTEGER DEFAULT 50;
 
 
 -- Enable pgvector extension

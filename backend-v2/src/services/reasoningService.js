@@ -189,15 +189,30 @@ const makeDecision = (intent, eligibility, escalationData, customerMemory, custo
     };
 };
 
-const logReasoning = async (shopDomain, customerEmail, ticketId, intent, sentiment, escalationProb, decision, reasoningSummary, fraudFlag, refundEligible) => {
+const logReasoning = async (shopDomain, customerEmail, ticketId, intent, sentiment, escalationProb, decision, reasoningSummary, fraudFlag, refundEligible, confidenceScore = null) => {
     try {
         await db.query(
             `INSERT INTO reasoning_logs 
-             (shop_domain, customer_email, ticket_id, intent, sentiment, escalation_probability, decision, reasoning_summary, fraud_flag, refund_eligible) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-            [shopDomain, customerEmail, ticketId, intent, sentiment, escalationProb, decision, reasoningSummary, fraudFlag || false, refundEligible || null]
+             (shop_domain, customer_email, ticket_id, intent, sentiment, escalation_probability, decision, reasoning_summary, fraud_flag, refund_eligible, confidence_score) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [shopDomain, customerEmail, ticketId, intent, sentiment, escalationProb, decision, reasoningSummary, fraudFlag || false, refundEligible || null, confidenceScore]
         );
     } catch (error) {
+        // Fallback for older database schemas where confidence_score column might not be present yet
+        if (error.message && error.message.includes('confidence_score')) {
+            try {
+                await db.query(
+                    `INSERT INTO reasoning_logs 
+                     (shop_domain, customer_email, ticket_id, intent, sentiment, escalation_probability, decision, reasoning_summary, fraud_flag, refund_eligible) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                    [shopDomain, customerEmail, ticketId, intent, sentiment, escalationProb, decision, reasoningSummary, fraudFlag || false, refundEligible || null]
+                );
+                return;
+            } catch (fallbackError) {
+                console.error(`[Reasoning] Error logging reasoning fallback: ${fallbackError.message}`);
+                return;
+            }
+        }
         console.error(`[Reasoning] Error logging reasoning: ${error.message}`);
     }
 };
