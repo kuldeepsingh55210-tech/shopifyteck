@@ -33,15 +33,13 @@ const checkResponseConfidence = async (orderData, generatedResponse, threshold =
             return { confidence_score: 65, reason: 'Global rate limit cooldown active - skipped', should_escalate: false };
         }
 
-        console.log(`[Confidence] Calling Gemini API to rate response quality...`);
+        const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+        const FALLBACK_MODEL = PRIMARY_MODEL === 'gemini-1.5-flash' ? 'gemini-2.0-flash' : 'gemini-1.5-flash';
 
-        const apiResponse = await Promise.race([
-            axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                {
-                    contents: [{
-                        parts: [{
-                            text: `You are evaluating the quality of a customer support response.
+        const requestPayload = {
+            contents: [{
+                parts: [{
+                    text: `You are evaluating the quality of a customer support response.
 Given the order data and the generated response, rate on a scale of 0-100 how well the response is supported by the actual order data.
 The response should be accurate and not make up information.
 
@@ -53,12 +51,30 @@ Customer Support Response:
 
 Respond ONLY with valid JSON (no markdown, no code blocks):
 {"confidence_score": <number 0-100>, "reason": "<brief explanation>"}`
-                        }]
-                    }]
-                }
-            ),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Confidence check timeout')), 4000))
-        ]);
+                }]
+            }]
+        };
+
+        const postToGemini = (modelName) => {
+            return axios.post(
+                `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                requestPayload,
+                { timeout: 4000 }
+            );
+        };
+
+        let apiResponse;
+        try {
+            console.log(`[Confidence] Calling Gemini API (${PRIMARY_MODEL}) to rate response quality...`);
+            apiResponse = await postToGemini(PRIMARY_MODEL);
+        } catch (modelError) {
+            if (modelError.response?.status === 404) {
+                console.warn(`[Confidence] Gemini model "${PRIMARY_MODEL}" returned 404. Retrying with fallback model "${FALLBACK_MODEL}"...`);
+                apiResponse = await postToGemini(FALLBACK_MODEL);
+            } else {
+                throw modelError;
+            }
+        }
 
         // Validate API response structure
         if (!apiResponse.data || !apiResponse.data.candidates || apiResponse.data.candidates.length === 0) {
@@ -157,18 +173,21 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         };
 
     } catch (error) {
-        console.error(`[Confidence] EXCEPTION: ${error.message}`);
+        const geminiDetails = error.response?.data?.error?.message || error.message;
+        console.error(`[Confidence] EXCEPTION: ${error.message} (Details: ${geminiDetails})`);
         console.error(`[Confidence] Error type: ${error.code || error.name}`);
 
         if (error.response?.status === 401) {
             console.error('[Confidence] CRITICAL: Gemini API authentication failed - check GEMINI_API_KEY');
         } else if (error.response?.status === 429) {
             console.error('[Confidence] Rate limited by Gemini API - implement exponential backoff');
+        } else if (error.response?.status === 404) {
+            console.error(`[Confidence] Gemini API model not found (404): ${geminiDetails}`);
         } else if (error.message.includes('timeout')) {
             console.error('[Confidence] Confidence check timed out - API may be slow');
         }
 
-        console.error('[Confidence] Full error:', error);
+        console.error('[Confidence] Full error:', error.message);
 
         // High-risk intents (refunds, cancellations, address changes): FAIL-CLOSED
         if (isHighRisk) {
