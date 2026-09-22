@@ -33,8 +33,8 @@ const checkResponseConfidence = async (orderData, generatedResponse, threshold =
             return { confidence_score: 65, reason: 'Global rate limit cooldown active - skipped', should_escalate: false };
         }
 
-        const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-        const FALLBACK_MODEL = PRIMARY_MODEL === 'gemini-1.5-flash' ? 'gemini-2.0-flash' : 'gemini-1.5-flash';
+        const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+        const FALLBACK_MODEL = PRIMARY_MODEL === 'gemini-3.6-flash' ? 'gemini-3.5-flash-lite' : 'gemini-3.6-flash';
 
         const requestPayload = {
             contents: [{
@@ -56,10 +56,11 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         };
 
         const postToGemini = (modelName) => {
+            const timeoutMs = parseInt(process.env.GEMINI_TIMEOUT_MS, 10) || 7000;
             return axios.post(
                 `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${process.env.GEMINI_API_KEY}`,
                 requestPayload,
-                { timeout: 4000 }
+                { timeout: timeoutMs }
             );
         };
 
@@ -68,8 +69,8 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
             console.log(`[Confidence] Calling Gemini API (${PRIMARY_MODEL}) to rate response quality...`);
             apiResponse = await postToGemini(PRIMARY_MODEL);
         } catch (modelError) {
-            if (modelError.response?.status === 404) {
-                console.warn(`[Confidence] Gemini model "${PRIMARY_MODEL}" returned 404. Retrying with fallback model "${FALLBACK_MODEL}"...`);
+            if (modelError.response?.status === 404 || modelError.response?.status === 503) {
+                console.warn(`[Confidence] Gemini model "${PRIMARY_MODEL}" returned ${modelError.response?.status}. Retrying with fallback model "${FALLBACK_MODEL}"...`);
                 apiResponse = await postToGemini(FALLBACK_MODEL);
             } else {
                 throw modelError;

@@ -174,7 +174,7 @@ Message: "${customerMessage}"`;
 
         const apiResponse = await Promise.race([
             axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-1.5-flash'}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-3.6-flash'}:generateContent?key=${process.env.GEMINI_API_KEY}`,
                 {
                     contents: [{
                         parts: [{
